@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 export default function RequestsPage() {
   const mockData = [
     {
@@ -20,6 +24,24 @@ export default function RequestsPage() {
     },
   ];
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+
+  const filteredData = mockData.filter((cr) => {
+    const matchesSearch =
+      cr.id.toLowerCase().includes(search.toLowerCase()) ||
+      cr.title.toLowerCase().includes(search.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "" || cr.status === statusFilter;
+
+    const matchesDate =
+      dateFilter === "" || cr.createdAt >= dateFilter;
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
   return (
     <div className="text-white">
       <div className="flex items-center justify-between mb-6">
@@ -33,6 +55,51 @@ export default function RequestsPage() {
         </a>
       </div>
 
+      {/* FILTRI */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Ricerca */}
+          <div>
+            <label className="text-gray-300 text-sm">Cerca</label>
+            <input
+              type="text"
+              placeholder="ID o titolo..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full mt-1 px-3 py-2 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Stato */}
+          <div>
+            <label className="text-gray-300 text-sm">Stato</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full mt-1 px-3 py-2 rounded-lg bg-gray-700 text-white"
+            >
+              <option value="">Tutti</option>
+              <option value="In Attesa">In Attesa</option>
+              <option value="In Lavorazione">In Lavorazione</option>
+              <option value="Completata">Completata</option>
+            </select>
+          </div>
+
+          {/* Data */}
+          <div>
+            <label className="text-gray-300 text-sm">Da data</label>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full mt-1 px-3 py-2 rounded-lg bg-gray-700 text-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* TABELLA */}
       <div className="bg-gray-800 p-6 rounded-xl shadow">
         <table className="w-full text-left">
           <thead>
@@ -45,7 +112,15 @@ export default function RequestsPage() {
           </thead>
 
           <tbody>
-            {mockData.map((cr) => (
+            {filteredData.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-4 text-center text-gray-400">
+                  Nessuna Change Request trovata
+                </td>
+              </tr>
+            )}
+
+            {filteredData.map((cr) => (
               <tr key={cr.id} className="border-b border-gray-700">
                 <td className="py-3">{cr.id}</td>
                 <td className="py-3">{cr.title}</td>
