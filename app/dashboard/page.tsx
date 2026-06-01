@@ -3,7 +3,7 @@ import Topbar from "../components/Topbar";
 export default function DashboardPage() {
   return (
     <div className="-m-6 flex flex-col min-h-screen">
-      <Topbar title="Dashboard" />
+      <h1 className="text-xl font-semibold mb-6">Dashboard</h1>
 
       <div className="flex-1 p-6 space-y-6 bg-slate-100">
         {/* Riepilogo in alto */}
