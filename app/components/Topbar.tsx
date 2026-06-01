@@ -16,6 +16,15 @@ export default function Topbar() {
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+
+      {/* LOGO + NOME SITO */}
+      <div className="flex items-center gap-2">
+        <div className="text-lg font-bold tracking-tight text-slate-900">
+          ChangeGate
+        </div>
+      </div>
+
+      {/* MENU */}
       <nav className="flex items-center gap-6">
         {menu.map((item) => {
           const active = pathname.startsWith(item.href);
@@ -37,6 +46,7 @@ export default function Topbar() {
         })}
       </nav>
 
+      {/* AVATAR UTENTE */}
       <div className="w-8 h-8 rounded-full bg-slate-300" />
     </header>
   );
