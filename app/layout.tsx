@@ -1,5 +1,5 @@
 import "./globals.css";
-import Link from "next/link";
+import Sidebar from "./components/Sidebar";
 
 export const metadata = {
   title: "ChangeGate",
@@ -9,35 +9,19 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
-      <body className="bg-gray-900 text-white">
-        <nav className="w-full bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
-          <div className="text-xl font-bold">
-            <Link href="/">ChangeGate</Link>
-          </div>
+      <body className="bg-slate-100 text-slate-900">
+        <div className="flex min-h-screen">
+          <Sidebar />
 
-          <div className="flex gap-6 text-gray-300">
-            <Link href="/dashboard" className="hover:text-white transition">
-              Dashboard
-            </Link>
-            <Link href="/requests" className="hover:text-white transition">
-              Change Request
-            </Link>
-            <Link href="/settings" className="hover:text-white transition">
-              Impostazioni
-            </Link>
-          </div>
+          <div className="flex-1 flex flex-col">
+            {/* Topbar per tutte le pagine interne, la pagina login la gestiremo a parte */}
+            <div className="sticky top-0 z-20">
+              {/* Il titolo lo metteremo nelle singole pagine */}
+            </div>
 
-          <div>
-            <Link
-              href="/login"
-              className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold"
-            >
-              Login
-            </Link>
+            <main className="p-6">{children}</main>
           </div>
-        </nav>
-
-        <main className="p-6">{children}</main>
+        </div>
       </body>
     </html>
   );
