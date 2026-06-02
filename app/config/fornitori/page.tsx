@@ -22,7 +22,7 @@ export default function FornitoriPage() {
         </a>
       </div>
 
-      {/* CARD: TABELLA FORNITORI */}
+      {/* CARD: TABELLA */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
         <table className="w-full text-left text-sm">
           <thead>
