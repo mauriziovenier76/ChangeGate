@@ -1,3 +1,5 @@
+"use client";
+
 export default function FornitoriPage() {
   const fornitori = [
     { id: 1, nome: "Tech Solutions Srl", pm: 3, specialisti: 8 },
@@ -5,9 +7,12 @@ export default function FornitoriPage() {
   ];
 
   return (
-    <div>
+    <div className="p-6 text-sm">
+
+      {/* TITOLO PAGINA */}
       <h1 className="text-xl font-semibold mb-6">Fornitori</h1>
 
+      {/* CARD: NUOVO FORNITORE */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mb-6">
         <a
           href="/config/fornitori/new"
@@ -17,8 +22,9 @@ export default function FornitoriPage() {
         </a>
       </div>
 
+      {/* CARD: TABELLA FORNITORI */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
-        <table className="w-full text-sm">
+        <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200">
               <th className="py-2 text-xs font-semibold text-slate-500 uppercase">Nome</th>
@@ -29,15 +35,16 @@ export default function FornitoriPage() {
 
           <tbody className="divide-y divide-slate-100">
             {fornitori.map((f) => (
-              <tr key={f.id} className="hover:bg-slate-50">
-                <td className="py-2">{f.nome}</td>
-                <td className="py-2">{f.pm}</td>
-                <td className="py-2">{f.specialisti}</td>
+              <tr key={f.id} className="hover:bg-slate-50 transition">
+                <td className="py-2 text-slate-900">{f.nome}</td>
+                <td className="py-2 text-slate-700">{f.pm}</td>
+                <td className="py-2 text-slate-700">{f.specialisti}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
