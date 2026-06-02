@@ -1,3 +1,13 @@
+import {
+  Home,
+  ListChecks,
+  Calendar,
+  Settings,
+  Users,
+  FolderKanban,
+  ChevronDown,
+} from "lucide-react";
+
 const menu = [
   {
     name: "Dashboard",
