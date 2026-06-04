@@ -193,25 +193,19 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
     <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 12 }}>
       <button
         onClick={() => setOpen(!open)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
       >
         <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
-            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
-            <span style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: "#94a3b8" }}>{project.id}</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ flex: 1, height: 5, backgroundColor: "#e2e8f0", borderRadius: 99, overflow: "hidden", maxWidth: 200 }}>
-              <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
-            </div>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} completate</span>
-          </div>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>{project.name}</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>·</span>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)", flexShrink: 0 }}>{project.client}</span>
+        <span style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: "#94a3b8", flexShrink: 0 }}>{project.id}</span>
+        <div style={{ flex: 1, height: 5, backgroundColor: "#e2e8f0", borderRadius: 99, overflow: "hidden", minWidth: 60 }}>
+          <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
         </div>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const, flexShrink: 0 }}>{done}/{total} completate</span>
         <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", backgroundColor: "#eff6ff", padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>
           {total} CR
         </span>
