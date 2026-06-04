@@ -35,7 +35,7 @@ const mockProjects: Project[] = [
     name: "Gestionale 2.0",
     client: "ACME Srl",
     crs: [
-      { id: "CR-001", title: "Aggiornamento modulo fatturazione", status: "In Approvazione", priority: "Alta", estimate: 16, startDate: "2024-06-10", endDate: "2024-06-20", assignedTo: "Marco R.", description: "Aggiornare il modulo di fatturazione per supportare il nuovo formato XML richiesto dall'Agenzia delle Entrate." },
+      { id: "CR-001", title: "Aggiornamento modulo fatturazione", status: "In Approvazione", priority: "Alta", estimate: 16, startDate: "2024-06-10", endDate: "2024-06-20", assignedTo: "Marco R.", description: "Aggiornare il modulo di fatturazione per supportare il nuovo formato XML." },
       { id: "CR-002", title: "Fix bug reportistica mensile", status: "In Lavorazione", priority: "Media", estimate: 8, startDate: "2024-06-12", endDate: "2024-06-15", assignedTo: "Sara B." },
       { id: "CR-003", title: "Nuova dashboard KPI direzione", status: "Completata", priority: "Bassa", estimate: 24, startDate: "2024-05-01", endDate: "2024-05-20", assignedTo: "Marco R." },
     ],
@@ -83,51 +83,27 @@ function formatDate(d: string | null) {
   return `${day}/${m}/${y}`;
 }
 
-function progressForProject(project: Project) {
-  const total = project.crs.length;
-  const done = project.crs.filter((c) => c.status === "Completata").length;
-  return { total, done, pct: total === 0 ? 0 : Math.round((done / total) * 100) };
-}
-
 // ─── Drawer ───────────────────────────────────────────────────────────────────
 
 function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose: () => void }) {
   return (
     <>
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }}
-      />
-      <div
-        className="animate-slideIn"
-        style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 480, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}
-      >
-        {/* Header */}
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
+      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 480, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <div style={{ fontSize: 12, fontFamily: "DM Mono, monospace", color: "#2563eb", fontWeight: 600, marginBottom: 4 }}>
-              {cr.id} · {project.name}
-            </div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>
-              {cr.title}
-            </h2>
+            <div style={{ fontSize: 12, fontFamily: "DM Mono, monospace", color: "#2563eb", fontWeight: 600, marginBottom: 4 }}>{cr.id} · {project.name}</div>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>{cr.title}</h2>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", marginLeft: 12, flexShrink: 0 }}>
             <X size={18} />
           </button>
         </div>
-
-        {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
           <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color }}>
-              {cr.status}
-            </span>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: "#f8fafc", color: priorityStyle[cr.priority].color, border: "1px solid var(--border)" }}>
-              Priorità {cr.priority}
-            </span>
+            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color }}>{cr.status}</span>
+            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: "#f8fafc", color: priorityStyle[cr.priority].color, border: "1px solid var(--border)" }}>Priorità {cr.priority}</span>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
             {[
               { icon: <Clock size={14} />, label: "Stima", value: cr.estimate ? `${cr.estimate} ore` : null },
@@ -140,13 +116,10 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
                   {field.icon}
                   <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{field.label}</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: field.value ? "var(--text-primary)" : "#cbd5e1" }}>
-                  {field.value ?? "—"}
-                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: field.value ? "var(--text-primary)" : "#cbd5e1" }}>{field.value ?? "—"}</div>
               </div>
             ))}
           </div>
-
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", marginBottom: 8 }}>
               <AlignLeft size={14} />
@@ -156,7 +129,6 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
               {cr.description ?? "Nessuna descrizione inserita."}
             </div>
           </div>
-
           <div style={{ backgroundColor: "#eff6ff", borderRadius: 10, padding: "12px 14px", display: "flex", gap: 24 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Cliente</div>
@@ -168,104 +140,12 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
             </div>
           </div>
         </div>
-
-        {/* Footer */}
         <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
-          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
-            Modifica
-          </button>
-          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer", fontFamily: "inherit" }}>
-            Cambia stato
-          </button>
+          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Modifica</button>
+          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer", fontFamily: "inherit" }}>Cambia stato</button>
         </div>
       </div>
     </>
-  );
-}
-
-// ─── Project accordion ────────────────────────────────────────────────────────
-
-function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Project; defaultOpen: boolean; onSelectCR: (cr: CR, project: Project) => void }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const { total, done, pct } = progressForProject(project);
-
-  return (
-    <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 12 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 20px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
-      >
-        <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-          {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-        </span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>{project.name}</span>
-        <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>·</span>
-        <span style={{ fontSize: 13, color: "var(--text-secondary)", flexShrink: 0 }}>{project.client}</span>
-        <span style={{ fontSize: 11, fontFamily: "DM Mono, monospace", color: "#94a3b8", flexShrink: 0 }}>{project.id}</span>
-        <div style={{ flex: 1, height: 5, backgroundColor: "#e2e8f0", borderRadius: 99, overflow: "hidden", minWidth: 60 }}>
-          <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
-        </div>
-        <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const, flexShrink: 0 }}>{done}/{total} completate</span>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", backgroundColor: "#eff6ff", padding: "3px 10px", borderRadius: 20, flexShrink: 0 }}>
-          {total} CR
-        </span>
-      </button>
-
-      {open && (
-        <div style={{ borderTop: "1px solid var(--border-soft)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#f8fafc" }}>
-                {["ID", "Titolo", "Stato", "Priorità", "Stima", "Inizio", "Fine", "Assegnato a"].map((h) => (
-                  <th key={h} style={{ padding: "9px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {project.crs.map((cr) => (
-                <tr
-                  key={cr.id}
-                  onClick={() => onSelectCR(cr, project)}
-                  style={{ borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                >
-                  <td style={{ padding: "11px 16px" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.id}</span>
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{cr.title}</td>
-                  <td style={{ padding: "11px 16px" }}>
-                    <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>
-                      {cr.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: "11px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, color: priorityStyle[cr.priority].color, fontWeight: 600 }}>{cr.priority}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>
-                    {cr.estimate ? `${cr.estimate}h` : <span style={{ color: "#cbd5e1" }}>—</span>}
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>
-                    {formatDate(cr.startDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>
-                    {formatDate(cr.endDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}
-                  </td>
-                  <td style={{ padding: "11px 16px", fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>
-                    {cr.assignedTo ?? <span style={{ color: "#cbd5e1" }}>—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -274,6 +154,15 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
 export default function RequestsPage() {
   const [search, setSearch] = useState("");
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+
+  const toggleProject = (id: string) => {
+    setCollapsedProjects((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const filtered = mockProjects
     .map((p) => ({
@@ -291,26 +180,23 @@ export default function RequestsPage() {
 
   const totalCRs = mockProjects.reduce((sum, p) => sum + p.crs.length, 0);
 
+  const COL_WIDTHS = ["90px", "1fr", "150px", "100px", "80px", "100px", "100px", "130px"];
+  const COLS = ["ID", "TITOLO", "STATO", "PRIORITÀ", "STIMA", "INIZIO", "FINE", "ASSEGNATO A"];
+
   return (
     <div style={{ maxWidth: 1200 }}>
+      {/* Page header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: 0 }}>
-            Change Request
-          </h1>
-          <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>
-            {mockProjects.length} progetti · {totalCRs} richieste totali
-          </p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: 0 }}>Change Request</h1>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>{mockProjects.length} progetti · {totalCRs} richieste totali</p>
         </div>
-        <a
-          href="/requests/new"
-          style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
-        >
-          <Plus size={15} />
-          Nuova CR
+        <a href="/requests/new" style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
+          <Plus size={15} />Nuova CR
         </a>
       </div>
 
+      {/* Search */}
       <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
         <Search size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
         <input
@@ -327,27 +213,153 @@ export default function RequestsPage() {
         )}
       </div>
 
+      {/* Table */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>
           Nessun risultato per &ldquo;{search}&rdquo;
         </div>
       ) : (
-        filtered.map((project, i) => (
-          <ProjectAccordion
-            key={project.id}
-            project={project}
-            defaultOpen={i === 0}
-            onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })}
-          />
-        ))
+        <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+
+          {/* Fixed column header */}
+          <div style={{ display: "grid", gridTemplateColumns: `28px ${COL_WIDTHS.join(" ")}`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc" }}>
+            <div /> {/* chevron spacer */}
+            {COLS.map((col) => (
+              <div key={col} style={{ padding: "10px 14px", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>
+                {col}
+              </div>
+            ))}
+          </div>
+
+          {/* Project groups */}
+          {filtered.map((project, pi) => {
+            const isCollapsed = collapsedProjects.has(project.id);
+            const total = project.crs.length;
+            const done = project.crs.filter((c) => c.status === "Completata").length;
+            const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+            return (
+              <div key={project.id} style={{ borderBottom: pi < filtered.length - 1 ? "1px solid var(--border)" : "none" }}>
+
+                {/* Project row */}
+                <div
+                  onClick={() => toggleProject(project.id)}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: `28px ${COL_WIDTHS.join(" ")}`,
+                    alignItems: "center",
+                    backgroundColor: "#f0f4ff",
+                    borderBottom: isCollapsed ? "none" : "1px solid var(--border-soft)",
+                    cursor: "pointer",
+                    userSelect: "none" as const,
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
+                >
+                  {/* Chevron */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                  </div>
+
+                  {/* ID col → project ID */}
+                  <div style={{ padding: "11px 14px" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.id}</span>
+                  </div>
+
+                  {/* Title col → project name + client */}
+                  <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
+                  </div>
+
+                  {/* Stato col → progress bar */}
+                  <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, height: 5, backgroundColor: "#cbd5e1", borderRadius: 99, overflow: "hidden", minWidth: 40 }}>
+                      <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
+                    </div>
+                  </div>
+
+                  {/* Priorità col → completate */}
+                  <div style={{ padding: "11px 14px" }}>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
+                  </div>
+
+                  {/* Remaining cols → empty */}
+                  <div /><div /><div />
+
+                  {/* Last col → CR badge */}
+                  <div style={{ padding: "11px 14px" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", backgroundColor: "#dbeafe", padding: "2px 9px", borderRadius: 20 }}>
+                      {total} completate: {done}
+                    </span>
+                  </div>
+                </div>
+
+                {/* CR rows */}
+                {!isCollapsed && project.crs.map((cr, ci) => (
+                  <div
+                    key={cr.id}
+                    onClick={() => setSelectedCR({ cr, project })}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: `28px ${COL_WIDTHS.join(" ")}`,
+                      alignItems: "center",
+                      borderBottom: ci < project.crs.length - 1 ? "1px solid var(--border-soft)" : "none",
+                      cursor: "pointer",
+                      transition: "background 0.1s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <div /> {/* chevron spacer */}
+
+                    <div style={{ padding: "11px 14px" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.id}</span>
+                    </div>
+
+                    <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{cr.title}</div>
+
+                    <div style={{ padding: "11px 14px" }}>
+                      <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>
+                        {cr.status}
+                      </span>
+                    </div>
+
+                    <div style={{ padding: "11px 14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: priorityStyle[cr.priority].color, fontWeight: 600 }}>{cr.priority}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-secondary)" }}>
+                      {cr.estimate ? `${cr.estimate}h` : <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </div>
+
+                    <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>
+                      {formatDate(cr.startDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </div>
+
+                    <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>
+                      {formatDate(cr.endDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </div>
+
+                    <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-secondary)" }}>
+                      {cr.assignedTo ?? <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
       )}
 
+      {/* Drawer */}
       {selectedCR && (
-        <CRDrawer
-          cr={selectedCR.cr}
-          project={selectedCR.project}
-          onClose={() => setSelectedCR(null)}
-        />
+        <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} />
       )}
     </div>
   );
