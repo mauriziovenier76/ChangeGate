@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Search, X, Calendar, Clock, User, AlignLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronRight, Plus, Search, X, Calendar, Clock, User, AlignLeft, Filter, Check } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -149,12 +149,150 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
   );
 }
 
+// ─── CheckboxDropdown ─────────────────────────────────────────────────────────
+
+function CheckboxDropdown({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  selected: Set<string>;
+  onChange: (next: Set<string>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const allSelected = selected.size === 0; // empty set = "tutti"
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const toggle = (val: string) => {
+    const next = new Set(selected);
+    next.has(val) ? next.delete(val) : next.add(val);
+    onChange(next);
+  };
+
+  const toggleAll = () => onChange(new Set());
+
+  const activeCount = selected.size;
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: "flex", alignItems: "center", gap: 7,
+          padding: "7px 12px", borderRadius: 8,
+          border: activeCount > 0 ? "1.5px solid #2563eb" : "1.5px solid var(--border)",
+          backgroundColor: activeCount > 0 ? "#eff6ff" : "white",
+          cursor: "pointer", fontFamily: "inherit",
+          fontSize: 13, fontWeight: 500,
+          color: activeCount > 0 ? "#2563eb" : "var(--text-secondary)",
+          whiteSpace: "nowrap" as const,
+          transition: "all 0.15s",
+        }}
+      >
+        <Filter size={13} />
+        {label}
+        {activeCount > 0 && (
+          <span style={{ backgroundColor: "#2563eb", color: "white", borderRadius: 20, fontSize: 11, fontWeight: 700, padding: "1px 6px", marginLeft: 2 }}>
+            {activeCount}
+          </span>
+        )}
+        <ChevronDown size={13} style={{ marginLeft: 2, opacity: 0.6, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+
+      {open && (
+        <div
+          className="animate-fadeIn"
+          style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0,
+            minWidth: 210, backgroundColor: "white",
+            border: "1px solid var(--border)", borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+            zIndex: 100, overflow: "hidden",
+          }}
+        >
+          {/* Header */}
+          <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid var(--border-soft)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>
+              {label}
+            </span>
+            <button
+              onClick={toggleAll}
+              style={{ fontSize: 12, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, padding: 0 }}
+            >
+              {allSelected ? "Nessuno" : "Tutti"}
+            </button>
+          </div>
+
+          {/* Options */}
+          <div style={{ maxHeight: 240, overflowY: "auto", padding: "6px 0" }}>
+            {options.map((opt) => {
+              const checked = selected.size === 0 ? false : selected.has(opt);
+              // "Tutti" row
+              return (
+                <div
+                  key={opt}
+                  onClick={() => toggle(opt)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "8px 14px", cursor: "pointer",
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                >
+                  {/* Custom checkbox */}
+                  <div style={{
+                    width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                    border: checked ? "none" : "1.5px solid #cbd5e1",
+                    backgroundColor: checked ? "#2563eb" : "white",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.1s",
+                  }}>
+                    {checked && <Check size={10} color="white" strokeWidth={3} />}
+                  </div>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: checked ? 600 : 400 }}>
+                    {opt}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer — reset */}
+          {activeCount > 0 && (
+            <div style={{ padding: "8px 14px", borderTop: "1px solid var(--border-soft)" }}>
+              <button
+                onClick={() => { onChange(new Set()); setOpen(false); }}
+                style={{ width: "100%", padding: "6px", borderRadius: 6, border: "none", backgroundColor: "#fee2e2", color: "#dc2626", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Rimuovi filtro
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RequestsPage() {
   const [search, setSearch] = useState("");
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [clientFilter, setClientFilter] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
     setCollapsedProjects((prev) => {
@@ -164,7 +302,11 @@ export default function RequestsPage() {
     });
   };
 
+  // Unique clients from all projects
+  const allClients = Array.from(new Set(mockProjects.map((p) => p.client))).sort();
+
   const filtered = mockProjects
+    .filter((p) => clientFilter.size === 0 || clientFilter.has(p.client))
     .map((p) => ({
       ...p,
       crs: p.crs.filter(
@@ -210,6 +352,35 @@ export default function RequestsPage() {
           <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}>
             <X size={14} />
           </button>
+        )}
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <CheckboxDropdown
+          label="Clienti"
+          options={allClients}
+          selected={clientFilter}
+          onChange={setClientFilter}
+        />
+        {/* Active filter pills */}
+        {clientFilter.size > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+            {Array.from(clientFilter).map((c) => (
+              <span
+                key={c}
+                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, backgroundColor: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 20, fontWeight: 500 }}
+              >
+                {c}
+                <button
+                  onClick={() => { const n = new Set(clientFilter); n.delete(c); setClientFilter(n); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#93c5fd" }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
