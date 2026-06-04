@@ -293,6 +293,7 @@ export default function RequestsPage() {
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [clientFilter, setClientFilter] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
     setCollapsedProjects((prev) => {
@@ -304,19 +305,22 @@ export default function RequestsPage() {
 
   // Unique clients from all projects
   const allClients = Array.from(new Set(mockProjects.map((p) => p.client))).sort();
+  const allStatuses: CRStatus[] = ["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"];
 
   const filtered = mockProjects
     .filter((p) => clientFilter.size === 0 || clientFilter.has(p.client))
     .map((p) => ({
       ...p,
-      crs: p.crs.filter(
-        (cr) =>
+      crs: p.crs.filter((cr) => {
+        const matchSearch =
           !search ||
           cr.id.toLowerCase().includes(search.toLowerCase()) ||
           cr.title.toLowerCase().includes(search.toLowerCase()) ||
           p.client.toLowerCase().includes(search.toLowerCase()) ||
-          p.name.toLowerCase().includes(search.toLowerCase())
-      ),
+          p.name.toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter.size === 0 || statusFilter.has(cr.status);
+        return matchSearch && matchStatus;
+      }),
     }))
     .filter((p) => p.crs.length > 0);
 
@@ -357,31 +361,8 @@ export default function RequestsPage() {
 
       {/* Filter bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-        <CheckboxDropdown
-          label="Clienti"
-          options={allClients}
-          selected={clientFilter}
-          onChange={setClientFilter}
-        />
-        {/* Active filter pills */}
-        {clientFilter.size > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-            {Array.from(clientFilter).map((c) => (
-              <span
-                key={c}
-                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, backgroundColor: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "3px 10px", borderRadius: 20, fontWeight: 500 }}
-              >
-                {c}
-                <button
-                  onClick={() => { const n = new Set(clientFilter); n.delete(c); setClientFilter(n); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#93c5fd" }}
-                >
-                  <X size={11} />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
+        <CheckboxDropdown label="Clienti" options={allClients} selected={clientFilter} onChange={setClientFilter} />
+        <CheckboxDropdown label="Stato" options={allStatuses} selected={statusFilter} onChange={setStatusFilter} />
       </div>
 
       {/* Table */}
