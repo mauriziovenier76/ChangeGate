@@ -1,143 +1,205 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  ListChecks,
-  Calendar,
-  Settings,
-  Users,
-  FolderKanban,
-  ChevronDown,
-} from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronDown, LogOut, User, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+
+const breadcrumbMap: Record<string, string> = {
+  dashboard: "Dashboard",
+  requests: "Change Request",
+  planning: "Planning",
+  config: "Configurazioni",
+  clienti: "Clienti",
+  progetti: "Progetti",
+  fornitori: "Fornitori",
+  new: "Nuova",
+};
 
 export default function Topbar() {
   const pathname = usePathname();
-
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState(false);
-
-  const menuRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
+  // Build breadcrumbs
+  const segments = pathname.split("/").filter(Boolean);
+  const crumbs = segments.map((seg, i) => ({
+    label: breadcrumbMap[seg] ?? seg,
+    href: "/" + segments.slice(0, i + 1).join("/"),
+  }));
+
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
-        userRef.current &&
-        !userRef.current.contains(e.target as Node)
-      ) {
-        setOpenMenu(null);
+    function handle(e: MouseEvent) {
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
         setOpenUser(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  const menu = [
-    {
-      name: "Dashboard",
-      icon: <Home size={16} />,
-      links: [
-        { label: "Overview", href: "/dashboard" },
-        { label: "Statistiche", href: "/dashboard/stats" },
-      ],
-    },
-    {
-      name: "Change Request",
-      icon: <ListChecks size={16} />,
-      links: [
-        { label: "Lista", href: "/requests" },
-        { label: "Nuova CR", href: "/requests/new" },
-      ],
-    },
-    {
-      name: "Planning",
-      icon: <Calendar size={16} />,
-      links: [
-        { label: "Calendario", href: "/planning" },
-        { label: "Timeline", href: "/planning/timeline" },
-      ],
-    },
-    {
-      name: "Configurazioni",
-      icon: <Settings size={16} />,
-      links: [
-        { label: "Clienti", href: "/config/clienti" },
-        { label: "Progetti", href: "/config/progetti" },
-        { label: "Fornitori", href: "/config/fornitori" },
-      ],
-    },
-  ];
-
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-      <div className="text-lg font-bold tracking-tight text-slate-900">
-        ChangeGate
-      </div>
-
-      <nav className="flex items-center gap-6 text-sm" ref={menuRef}>
-        {menu.map((item) => {
-          const isOpen = openMenu === item.name;
-
-          return (
-            <div key={item.name} className="relative">
-              <button
-                onClick={() => setOpenMenu(isOpen ? null : item.name)}
-                className="flex items-center gap-1 text-slate-700 hover:text-slate-900 transition"
-              >
-                {item.icon}
-                {item.name}
-                <ChevronDown size={14} />
-              </button>
-
-              {isOpen && (
-                <div className="absolute left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-fadeIn">
-                  {item.links.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="block px-4 py-2 text-slate-700 hover:bg-slate-50"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+    <header
+      style={{
+        height: 60,
+        backgroundColor: "var(--surface-card)",
+        borderBottom: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 24px",
+        flexShrink: 0,
+      }}
+    >
+      {/* Breadcrumb */}
+      <nav style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+        <Link href="/dashboard" style={{ color: "var(--text-muted)", textDecoration: "none" }}>
+          Home
+        </Link>
+        {crumbs.map((crumb, i) => (
+          <span key={crumb.href} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: "var(--border)", fontSize: 16 }}>/</span>
+            {i === crumbs.length - 1 ? (
+              <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{crumb.label}</span>
+            ) : (
+              <Link href={crumb.href} style={{ color: "var(--text-muted)", textDecoration: "none" }}>
+                {crumb.label}
+              </Link>
+            )}
+          </span>
+        ))}
       </nav>
 
-      <div className="relative" ref={userRef}>
-        <div
-          onClick={() => setOpenUser(!openUser)}
-          className="w-9 h-9 rounded-full bg-slate-300 cursor-pointer hover:opacity-80 transition"
-        />
+      {/* Right */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Notifications */}
+        <button
+          style={{
+            position: "relative",
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            backgroundColor: "transparent",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--text-secondary)",
+          }}
+        >
+          <Bell size={16} />
+          <span
+            style={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              backgroundColor: "#ef4444",
+              border: "1.5px solid white",
+            }}
+          />
+        </button>
 
-        {openUser && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50 animate-fadeIn">
-            <Link
-              href="/profile"
-              className="block px-4 py-2 text-slate-700 hover:bg-slate-50"
+        {/* User */}
+        <div ref={userRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setOpenUser(!openUser)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 10px",
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              backgroundColor: "transparent",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 13,
+              color: "var(--text-primary)",
+              fontWeight: 500,
+            }}
+          >
+            <div
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              Profilo
-            </Link>
-            <Link
-              href="/settings"
-              className="block px-4 py-2 text-slate-700 hover:bg-slate-50"
+              <User size={13} color="white" />
+            </div>
+            Admin
+            <ChevronDown size={13} style={{ color: "var(--text-muted)" }} />
+          </button>
+
+          {openUser && (
+            <div
+              className="animate-fadeIn"
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "calc(100% + 8px)",
+                width: 180,
+                backgroundColor: "var(--surface-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                overflow: "hidden",
+                zIndex: 50,
+              }}
             >
-              Impostazioni
-            </Link>
-            <button className="block w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-50">
-              Logout
-            </button>
-          </div>
-        )}
+              {[
+                { label: "Profilo", icon: <User size={14} />, href: "/profile" },
+                { label: "Impostazioni", icon: <Settings size={14} />, href: "/settings" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "9px 14px",
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
+                    textDecoration: "none",
+                  }}
+                  onClick={() => setOpenUser(false)}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              ))}
+              <div style={{ borderTop: "1px solid var(--border-soft)", margin: "4px 0" }} />
+              <button
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "9px 14px",
+                  width: "100%",
+                  border: "none",
+                  backgroundColor: "transparent",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  color: "#ef4444",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                <LogOut size={14} />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

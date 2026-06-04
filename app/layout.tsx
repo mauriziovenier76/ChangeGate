@@ -1,13 +1,18 @@
 import "./globals.css";
-import Topbar from "./components/Topbar";
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import AppShell from "./components/AppShell";
+
+export const metadata: Metadata = {
+  title: "ChangeGate",
+  description: "Change Management Portal",
+};
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="it">
-      <body className="bg-slate-100 text-slate-900">
-        <Topbar />
-        <main className="p-6">{children}</main>
+      <body>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
