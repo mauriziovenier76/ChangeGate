@@ -439,14 +439,7 @@ export default function RequestsPage() {
                   </div>
 
                   {/* Remaining cols → empty */}
-                  <div /><div /><div />
-
-                  {/* Last col → CR badge */}
-                  <div style={{ padding: "11px 14px" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", backgroundColor: "#dbeafe", padding: "2px 9px", borderRadius: 20 }}>
-                      {total} completate: {done}
-                    </span>
-                  </div>
+                  <div /><div /><div /><div />
                 </div>
 
                 {/* CR rows */}
