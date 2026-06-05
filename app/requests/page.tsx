@@ -275,9 +275,87 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
 
 // ─── New CR Modal ─────────────────────────────────────────────────────────────
 
-type ClientRow   = { id: string; nome: string };
+type ClientRow   = { id: string; nome: string; fornitore_nome?: string };
 type ProjectRow  = { id: string; nome: string; cliente_id: string };
 type TeamRow     = { id: string; nome: string; ruolo: string };
+
+// ─── GridPicker ───────────────────────────────────────────────────────────────
+
+function GridPicker({ label, columns, rows, selected, onSelect, placeholder, emptyText, disabled = false }: {
+  label: string;
+  columns: string[];
+  rows: { id: string; cells: string[] }[];
+  selected: string;
+  onSelect: (id: string) => void;
+  placeholder: string;
+  emptyText: string;
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState("");
+  const filtered = rows.filter((r) =>
+    r.cells.some((c) => c.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  return (
+    <div style={{ opacity: disabled ? 0.45 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>
+        {label}
+        {selected && <span style={{ marginLeft: 8, fontSize: 11, color: "#2563eb", fontWeight: 700, textTransform: "none" as const, letterSpacing: 0 }}>✓ selezionato</span>}
+      </div>
+      <div style={{ border: "1.5px solid selected ? #2563eb : var(--border)", borderRadius: 10, overflow: "hidden", borderColor: selected ? "#bfdbfe" : "var(--border)" }}>
+        {/* Search bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
+          <Search size={13} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder={placeholder}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, fontFamily: "inherit", backgroundColor: "transparent", color: "var(--text-primary)" }}
+          />
+          {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--text-muted)" }}><X size={12} /></button>}
+        </div>
+        {/* Column headers */}
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length}, 1fr)`, backgroundColor: "#f1f5f9", borderBottom: "1px solid var(--border-soft)" }}>
+          {columns.map((col) => (
+            <div key={col} style={{ padding: "6px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{col}</div>
+          ))}
+        </div>
+        {/* Rows */}
+        <div style={{ maxHeight: 180, overflowY: "auto" }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: "16px 12px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>{emptyText}</div>
+          ) : (
+            filtered.map((row) => {
+              const isSel = row.id === selected;
+              return (
+                <div
+                  key={row.id}
+                  onClick={() => onSelect(isSel ? "" : row.id)}
+                  style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length}, 1fr)`, cursor: "pointer", backgroundColor: isSel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)", transition: "background 0.1s" }}
+                  onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.backgroundColor = isSel ? "#eff6ff" : "transparent"; }}
+                >
+                  {row.cells.map((cell, ci) => (
+                    <div key={ci} style={{ padding: "9px 12px", fontSize: 13, color: isSel ? "#1e40af" : "var(--text-primary)", fontWeight: isSel && ci === 0 ? 700 : 400, display: "flex", alignItems: "center", gap: 6 }}>
+                      {ci === 0 && isSel && <Check size={13} color="#2563eb" strokeWidth={3} style={{ flexShrink: 0 }} />}
+                      {cell || <span style={{ color: "#cbd5e1" }}>—</span>}
+                    </div>
+                  ))}
+                </div>
+              );
+            })
+          )}
+        </div>
+        {/* Count footer */}
+        <div style={{ padding: "5px 12px", backgroundColor: "#f8fafc", borderTop: "1px solid var(--border-soft)", fontSize: 11, color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
+          <span>{filtered.length} di {rows.length} record</span>
+          {selected && <button onClick={() => onSelect("")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#dc2626", fontFamily: "inherit", padding: 0 }}>Deseleziona</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [clienti, setClienti]     = useState<ClientRow[]>([]);
@@ -303,8 +381,11 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 
   // Load clienti on mount
   useEffect(() => {
-    supabase.from("cg_clienti").select("id, nome").eq("attivo", true).order("nome")
-      .then(({ data }) => setClienti(data ?? []));
+    supabase.from("cg_clienti").select("id, nome, cg_fornitori(nome)").eq("attivo", true).order("nome")
+      .then(({ data }) => setClienti((data ?? []).map((c) => ({
+        id: c.id, nome: c.nome,
+        fornitore_nome: (c.cg_fornitori as unknown as { nome: string } | null)?.nome ?? "",
+      }))));
   }, []);
 
   // Load progetti when cliente changes
@@ -378,7 +459,7 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.4)", zIndex: 60, backdropFilter: "blur(3px)" }} />
 
       {/* Modal */}
-      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(780px, 95vw)", maxHeight: "90vh", backgroundColor: "white", borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,0.2)", zIndex: 70, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(960px, 97vw)", maxHeight: "92vh", backgroundColor: "white", borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,0.2)", zIndex: 70, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Modal header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
@@ -395,25 +476,29 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
           {/* ── Sezione 1: Cliente + Progetto ── */}
           {sectionTitle("1 · Seleziona cliente e progetto")}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-            <div>
-              <label style={labelStyle}>Cliente</label>
-              <SearchableListbox
-                items={clienti.map((c) => ({ id: c.id, label: c.nome }))}
-                selected={selectedCliente}
-                onSelect={setSelectedCliente}
-                placeholder="Cerca cliente..."
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Progetto</label>
-              <SearchableListbox
-                items={progetti.map((p) => ({ id: p.id, label: p.nome }))}
-                selected={selectedProgetto}
-                onSelect={setSelectedProgetto}
-                placeholder="Cerca progetto..."
-                disabled={!selectedCliente}
-              />
-            </div>
+
+            {/* ── Clienti grid ── */}
+            <GridPicker
+              label="Cliente"
+              columns={["Nome", "Fornitore"]}
+              rows={clienti.map((c) => ({ id: c.id, cells: [c.nome, (c as ClientRow & { fornitore_nome?: string }).fornitore_nome ?? ""] }))}
+              selected={selectedCliente}
+              onSelect={setSelectedCliente}
+              placeholder="Filtra clienti..."
+              emptyText="Nessun cliente disponibile"
+            />
+
+            {/* ── Progetti grid ── */}
+            <GridPicker
+              label="Progetto"
+              columns={["Nome"]}
+              rows={progetti.map((p) => ({ id: p.id, cells: [p.nome] }))}
+              selected={selectedProgetto}
+              onSelect={setSelectedProgetto}
+              placeholder="Filtra progetti..."
+              emptyText={selectedCliente ? "Nessun progetto per questo cliente" : "Seleziona prima un cliente"}
+              disabled={!selectedCliente}
+            />
           </div>
 
           {/* ── Sezione 2: Dettagli CR ── */}
