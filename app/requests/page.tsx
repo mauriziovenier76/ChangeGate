@@ -593,7 +593,7 @@ export default function RequestsPage() {
           crs: [],
         });
       }
-      const pm = row.pm as { nome: string } | null;
+      const pm = row.pm as unknown as { nome: string } | null;
       map.get(projId)!.crs.push({
         id:          row.id,
         codice:      row.codice,
