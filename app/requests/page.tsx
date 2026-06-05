@@ -581,7 +581,7 @@ export default function RequestsPage() {
     // Group by project
     const map = new Map<string, Project>();
     for (const row of data ?? []) {
-      const proj = row.cg_progetti as { id: string; nome: string; cg_clienti: { id: string; nome: string } } | null;
+      const proj = row.cg_progetti as unknown as { id: string; nome: string; cg_clienti: { id: string; nome: string } } | null;
       if (!proj) continue;
       const projId = proj.id;
       if (!map.has(projId)) {
