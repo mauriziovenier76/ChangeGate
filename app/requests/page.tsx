@@ -130,10 +130,14 @@ function SearchableListbox({ items, selected, onSelect, placeholder, disabled = 
   disabled?: boolean;
 }) {
   const [query, setQuery] = useState("");
-  const filtered = items.filter((i) =>
-    i.label.toLowerCase().includes(query.toLowerCase()) ||
-    (i.sub ?? "").toLowerCase().includes(query.toLowerCase())
-  );
+  const MIN_CHARS = 3;
+  const isSearching = query.length >= MIN_CHARS;
+  const filtered = isSearching
+    ? items.filter((i) =>
+        i.label.toLowerCase().includes(query.toLowerCase()) ||
+        (i.sub ?? "").toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 50)
+    : [];
   const selectedItem = items.find((i) => i.id === selected);
 
   return (
@@ -150,20 +154,38 @@ function SearchableListbox({ items, selected, onSelect, placeholder, disabled = 
         />
         {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--text-muted)" }}><X size={12} /></button>}
       </div>
-      {/* List */}
+
+      {/* List area */}
       <div style={{ maxHeight: 180, overflowY: "auto" }}>
-        {filtered.length === 0 ? (
-          <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>Nessun risultato</div>
+        {!isSearching ? (
+          // Hint state
+          <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Search size={13} style={{ color: "#94a3b8" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 500 }}>
+                Scrivi almeno {MIN_CHARS} caratteri
+              </div>
+              <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 1 }}>
+                {items.length} record disponibili
+              </div>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: "14px 16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>
+            Nessun risultato per &ldquo;{query}&rdquo;
+          </div>
         ) : (
           filtered.map((item) => {
             const isSelected = item.id === selected;
             return (
               <div
                 key={item.id}
-                onClick={() => onSelect(item.id)}
+                onClick={() => { onSelect(item.id); setQuery(""); }}
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", cursor: "pointer", backgroundColor: isSelected ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
                 onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = "transparent"; }}
+                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = isSelected ? "#eff6ff" : "transparent"; }}
               >
                 <div>
                   <div style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500, color: isSelected ? "#1e40af" : "var(--text-primary)" }}>{item.label}</div>
@@ -175,11 +197,12 @@ function SearchableListbox({ items, selected, onSelect, placeholder, disabled = 
           })
         )}
       </div>
+
       {/* Selected summary */}
       {selectedItem && (
         <div style={{ padding: "7px 12px", backgroundColor: "#eff6ff", borderTop: "1px solid #bfdbfe", fontSize: 12, color: "#2563eb", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>✓ {selectedItem.label}</span>
-          <button onClick={() => onSelect("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#93c5fd" }}><X size={12} /></button>
+          <button onClick={() => { onSelect(""); setQuery(""); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#93c5fd" }}><X size={12} /></button>
         </div>
       )}
     </div>
