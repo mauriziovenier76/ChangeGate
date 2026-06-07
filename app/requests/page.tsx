@@ -360,12 +360,12 @@ function GridPicker({ label, columns, rows, selected, onSelect, placeholder, emp
   );
 }
 
-function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClose: () => void; onCreated: () => void; preClienteId?: string; preProgettoId?: string }) {
   const [clienti, setClienti]     = useState<ClientRow[]>([]);
   const [progetti, setProgetti]   = useState<ProjectRow[]>([]);
   const [team, setTeam]           = useState<TeamRow[]>([]);
-  const [selectedCliente, setSelectedCliente]   = useState<string>("");
-  const [selectedProgetto, setSelectedProgetto] = useState<string>("");
+  const [selectedCliente, setSelectedCliente]   = useState<string>(preClienteId ?? "");
+  const [selectedProgetto, setSelectedProgetto] = useState<string>(preProgettoId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
@@ -613,7 +613,7 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 
 // ─── Project accordion ────────────────────────────────────────────────────────
 
-function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Project; defaultOpen: boolean; onSelectCR: (cr: CR, project: Project) => void }) {
+function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { project: Project; defaultOpen: boolean; onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void }) {
   const [open, setOpen] = useState(defaultOpen);
   const total = project.crs.length;
   const done  = project.crs.filter((c) => c.status === "Completata").length;
@@ -621,28 +621,44 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)" }}>
-      <div onClick={() => setOpen(!open)} style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", backgroundColor: "#f0f4ff", cursor: "pointer", userSelect: "none" as const, transition: "background 0.1s" }}
+      <div style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", backgroundColor: "#f0f4ff", transition: "background 0.1s" }}
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+        {/* Chevron — click to collapse */}
+        <div onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: "11px 0", height: "100%" }}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
-        <div style={{ padding: "11px 14px" }}>
+        {/* Project codice — click to collapse */}
+        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", cursor: "pointer" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
-        <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Name + client — click to collapse */}
+        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
           <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
         </div>
-        <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Progress — click to collapse */}
+        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <div style={{ flex: 1, height: 5, backgroundColor: "#cbd5e1", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        <div /><div /><div /><div /><div /><div />
+        <div /><div /><div /><div /><div />
+        {/* + button — last cell */}
+        <div style={{ padding: "11px 14px", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddCR(project); }}
+            title={`Nuova CR per ${project.name}`}
+            style={{ width: 26, height: 26, borderRadius: 6, border: "none", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626", fontSize: 18, fontWeight: 700, lineHeight: 1, padding: 0 }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fee2e2")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {open && project.crs.map((cr) => (
@@ -688,6 +704,12 @@ export default function RequestsPage() {
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
   const [showNewCR, setShowNewCR]   = useState(false);
+  const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
+
+  const openNewCR = (project?: Project) => {
+    setPreSelected(project ? { clienteId: project.clientId, progettoId: project.id } : null);
+    setShowNewCR(true);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -771,7 +793,7 @@ export default function RequestsPage() {
             {loading ? "Caricamento..." : `${projects.length} progetti · ${totalCRs} richieste totali`}
           </p>
         </div>
-        <button onClick={() => setShowNewCR(true)}
+        <button onClick={() => openNewCR()}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
           <Plus size={15} />Nuova CR
         </button>
@@ -806,7 +828,7 @@ export default function RequestsPage() {
             ))}
           </div>
           {filtered.map((project, i) => (
-            <ProjectAccordion key={project.id} project={project} defaultOpen={i === 0} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} />
+            <ProjectAccordion key={project.id} project={project} defaultOpen={i === 0} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} />
           ))}
         </div>
       )}
@@ -815,7 +837,7 @@ export default function RequestsPage() {
       {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} />}
 
       {/* New CR Modal */}
-      {showNewCR && <NewCRModal onClose={() => setShowNewCR(false)} onCreated={loadData} />}
+      {showNewCR && <NewCRModal onClose={() => { setShowNewCR(false); setPreSelected(null); }} onCreated={loadData} preClienteId={preSelected?.clienteId} preProgettoId={preSelected?.progettoId} />}
     </div>
   );
 }
