@@ -82,7 +82,7 @@ function CheckboxDropdown({ label, options, selected, onChange }: {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => onToggle()}
         style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 8, border: activeCount > 0 ? "1.5px solid #2563eb" : "1.5px solid var(--border)", backgroundColor: activeCount > 0 ? "#eff6ff" : "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 500, color: activeCount > 0 ? "#2563eb" : "var(--text-secondary)", whiteSpace: "nowrap" as const }}
       >
         <Filter size={13} />
@@ -704,11 +704,14 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
 
 // ─── Project accordion ────────────────────────────────────────────────────────
 
-function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { project: Project; defaultOpen: boolean; onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void }) {
-  const [open, setOpen] = useState(defaultOpen);
+function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
+  project: Project; isOpen: boolean; onToggle: () => void;
+  onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void;
+}) {
   const total = project.crs.length;
   const done  = project.crs.filter((c) => c.status === "Completata").length;
   const pct   = total === 0 ? 0 : Math.round((done / total) * 100);
+  const open  = isOpen;
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)" }}>
@@ -717,15 +720,15 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { proje
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
       >
         {/* Chevron — click to collapse */}
-        <div onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: "11px 0", height: "100%" }}>
+        <div onClick={() => onToggle()} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: "11px 0", height: "100%" }}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
         {/* Project codice — click to collapse */}
-        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 14px", cursor: "pointer" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
         {/* Name + client + + button — in one cell */}
-        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
@@ -742,7 +745,7 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { proje
           </button>
         </div>
         {/* Progress — click to collapse */}
-        <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <div style={{ flex: 1, height: 5, backgroundColor: "#cbd5e1", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
           </div>
@@ -801,6 +804,16 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
+  const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
+
+  const toggleProject = (id: string) => {
+    setOpenProjects((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   const loadData = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -845,7 +858,15 @@ export default function RequestsPage() {
         createdAt:   row.created_at ?? null,
       });
     }
-    setProjects(Array.from(map.values()));
+    const projectList = Array.from(map.values());
+    setProjects(projectList);
+    // Open first project only on initial load (openProjects is empty)
+    setOpenProjects((prev) => {
+      if (prev.size === 0 && projectList.length > 0) {
+        return new Set([projectList[0].id]);
+      }
+      return prev;
+    });
     setLoading(false);
   };
 
@@ -917,8 +938,8 @@ export default function RequestsPage() {
               <div key={col} style={{ padding: "10px 14px", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{col}</div>
             ))}
           </div>
-          {filtered.map((project, i) => (
-            <ProjectAccordion key={project.id} project={project} defaultOpen={i === 0} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} />
+          {filtered.map((project) => (
+            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} />
           ))}
         </div>
       )}
