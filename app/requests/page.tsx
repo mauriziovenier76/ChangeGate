@@ -393,10 +393,15 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
 
   // Load progetti when cliente changes
   useEffect(() => {
-    setSelectedProgetto("");
     if (!selectedCliente) { setProgetti([]); return; }
     supabase.from("cg_progetti").select("id, nome, cliente_id").eq("cliente_id", selectedCliente).eq("attivo", true).order("nome")
-      .then(({ data }) => setProgetti(data ?? []));
+      .then(({ data }) => {
+        setProgetti(data ?? []);
+        // If a project was preselected, set it after the list is loaded
+        if (preProgettoId && data?.some((p) => p.id === preProgettoId)) {
+          setSelectedProgetto(preProgettoId);
+        }
+      });
   }, [selectedCliente]);
 
   // Load team (pm + specialisti) — from the fornitore of the selected cliente
@@ -633,11 +638,20 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { proje
         <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", cursor: "pointer" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
-        {/* Name + client — click to collapse */}
+        {/* Name + client + + button — in one cell */}
         <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
           <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddCR(project); }}
+            title={`Nuova CR per ${project.name}`}
+            style={{ marginLeft: 8, width: 22, height: 22, borderRadius: 5, border: "none", backgroundColor: "#0f172a", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 16, fontWeight: 700, lineHeight: 1, padding: 0, flexShrink: 0 }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0f172a")}
+          >
+            +
+          </button>
         </div>
         {/* Progress — click to collapse */}
         <div onClick={() => setOpen(!open)} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
@@ -646,19 +660,7 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { proje
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        <div /><div /><div /><div /><div />
-        {/* + button — last cell */}
-        <div style={{ padding: "11px 14px", display: "flex", justifyContent: "flex-end" }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onAddCR(project); }}
-            title={`Nuova CR per ${project.name}`}
-            style={{ width: 26, height: 26, borderRadius: 6, border: "none", backgroundColor: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626", fontSize: 18, fontWeight: 700, lineHeight: 1, padding: 0 }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fee2e2")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-          >
-            +
-          </button>
-        </div>
+        <div /><div /><div /><div /><div /><div />
       </div>
 
       {open && project.crs.map((cr) => (
