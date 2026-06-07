@@ -648,9 +648,9 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR, onAddCR }: { proje
           <button
             onClick={(e) => { e.stopPropagation(); onAddCR(project); }}
             title={`Nuova CR per ${project.name}`}
-            style={{ width: 22, height: 22, borderRadius: 5, border: "none", backgroundColor: "#0f172a", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 16, fontWeight: 700, lineHeight: 1, padding: 0, flexShrink: 0 }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#1e293b")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0f172a")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#0f172a", fontSize: 20, fontWeight: 300, lineHeight: 1, display: "flex", alignItems: "center", flexShrink: 0 }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#2563eb")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#0f172a")}
           >
             +
           </button>
