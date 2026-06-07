@@ -82,7 +82,7 @@ function CheckboxDropdown({ label, options, selected, onChange }: {
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
-        onClick={() => onToggle()}
+        onClick={() => setOpen(!open)}
         style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", borderRadius: 8, border: activeCount > 0 ? "1.5px solid #2563eb" : "1.5px solid var(--border)", backgroundColor: activeCount > 0 ? "#eff6ff" : "white", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 500, color: activeCount > 0 ? "#2563eb" : "var(--text-secondary)", whiteSpace: "nowrap" as const }}
       >
         <Filter size={13} />
