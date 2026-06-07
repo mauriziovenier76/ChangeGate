@@ -212,50 +212,119 @@ function SearchableListbox({ items, selected, onSelect, placeholder, disabled = 
   );
 }
 
-// ─── Drawer detail ────────────────────────────────────────────────────────────
+// ─── Drawer detail / edit ─────────────────────────────────────────────────────
 
-function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose: () => void }) {
+function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    titolo:      cr.title,
+    descrizione: cr.description ?? "",
+    stato:       cr.status as string,
+    priorita:    cr.priority as string,
+    stima_ore:   cr.estimate ? String(cr.estimate) : "",
+    data_inizio: cr.startDate ?? "",
+    data_fine:   cr.endDate ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+  const [saved, setSaved]   = useState(false);
+
+  const set = (k: string, v: string) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
+
+  const handleSave = async () => {
+    if (!form.titolo.trim()) { setError("Il titolo è obbligatorio."); return; }
+    setSaving(true); setError(null);
+    const { error: err } = await supabase.from("cg_change_requests").update({
+      titolo:      form.titolo.trim(),
+      descrizione: form.descrizione || null,
+      stato:       form.stato,
+      priorita:    form.priorita,
+      stima_ore:   form.stima_ore ? parseFloat(form.stima_ore) : null,
+      data_inizio: form.data_inizio || null,
+      data_fine:   form.data_fine || null,
+    }).eq("id", cr.id);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setSaved(true);
+    onSaved();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "8px 10px", borderRadius: 7,
+    border: "1.5px solid var(--border)", fontSize: 13,
+    color: "var(--text-primary)", fontFamily: "inherit",
+    outline: "none", boxSizing: "border-box",
+    backgroundColor: "white",
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: 11, fontWeight: 600,
+    color: "var(--text-muted)", marginBottom: 5,
+    textTransform: "uppercase", letterSpacing: "0.06em",
+  };
+
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
       <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 480, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+
+        {/* Header */}
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <div style={{ fontSize: 12, fontFamily: "DM Mono, monospace", color: "#2563eb", fontWeight: 600, marginBottom: 4 }}>{cr.codice} · {project.name}</div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>{cr.title}</h2>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{project.client}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", marginLeft: 12, flexShrink: 0 }}><X size={18} /></button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color }}>{cr.status}</span>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: "#f8fafc", color: priorityStyle[cr.priority].color, border: "1px solid var(--border)" }}>Priorità {cr.priority}</span>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Titolo */}
+          <div>
+            <label style={labelStyle}>Titolo *</label>
+            <input type="text" value={form.titolo} onChange={(e) => set("titolo", e.target.value)} style={inputStyle} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-            {[
-              { icon: <Clock size={14} />, label: "Stima", value: cr.estimate ? `${cr.estimate} ore` : null },
-              { icon: <User size={14} />, label: "Assegnato a", value: cr.assignedTo },
-              { icon: <Calendar size={14} />, label: "Data inizio", value: formatDate(cr.startDate) },
-              { icon: <Calendar size={14} />, label: "Data fine", value: formatDate(cr.endDate) },
-            ].map((field) => (
-              <div key={field.label} style={{ backgroundColor: "#f8fafc", borderRadius: 10, padding: "12px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", marginBottom: 6 }}>
-                  {field.icon}
-                  <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{field.label}</span>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: field.value ? "var(--text-primary)" : "#cbd5e1" }}>{field.value ?? "—"}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", marginBottom: 8 }}>
-              <AlignLeft size={14} />
-              <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>Descrizione</span>
+
+          {/* Stato + Priorità */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Stato</label>
+              <select value={form.stato} onChange={(e) => set("stato", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
+                {["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"].map((s) => <option key={s}>{s}</option>)}
+              </select>
             </div>
-            <div style={{ fontSize: 14, color: cr.description ? "var(--text-secondary)" : "#cbd5e1", lineHeight: 1.6, backgroundColor: "#f8fafc", borderRadius: 10, padding: "12px 14px", minHeight: 80 }}>
-              {cr.description ?? "Nessuna descrizione inserita."}
+            <div>
+              <label style={labelStyle}>Priorità</label>
+              <select value={form.priorita} onChange={(e) => set("priorita", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
+                {["Alta", "Media", "Bassa"].map((p) => <option key={p}>{p}</option>)}
+              </select>
             </div>
           </div>
+
+          {/* Stima + Date */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Stima (ore)</label>
+              <input type="number" min="0" step="0.5" value={form.stima_ore} onChange={(e) => set("stima_ore", e.target.value)} style={inputStyle} placeholder="—" />
+            </div>
+            <div>
+              <label style={labelStyle}>Data inizio</label>
+              <input type="date" value={form.data_inizio} onChange={(e) => set("data_inizio", e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Data fine</label>
+              <input type="date" value={form.data_fine} onChange={(e) => set("data_fine", e.target.value)} style={inputStyle} />
+            </div>
+          </div>
+
+          {/* Descrizione */}
+          <div>
+            <label style={labelStyle}>Descrizione</label>
+            <textarea value={form.descrizione} onChange={(e) => set("descrizione", e.target.value)}
+              placeholder="Nessuna descrizione inserita."
+              style={{ ...inputStyle, minHeight: 90, resize: "vertical" as const }} />
+          </div>
+
+          {/* Info non modificabili */}
           <div style={{ backgroundColor: "#eff6ff", borderRadius: 10, padding: "12px 14px", display: "flex", gap: 24 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Cliente</div>
@@ -265,11 +334,28 @@ function CRDrawer({ cr, project, onClose }: { cr: CR; project: Project; onClose:
               <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Progetto</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "#1e40af" }}>{project.name}</div>
             </div>
+            {cr.createdAt && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Inserita</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#1e40af" }}>{formatDate(cr.createdAt)}</div>
+              </div>
+            )}
           </div>
+
+          {error && (
+            <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>
+          )}
         </div>
-        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10 }}>
-          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Modifica</button>
-          <button style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer", fontFamily: "inherit" }}>Cambia stato</button>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
+            Chiudi
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            {saving ? "Salvataggio..." : saved ? "✓ Salvato" : "Salva"}
+          </button>
         </div>
       </div>
     </>
@@ -838,7 +924,7 @@ export default function RequestsPage() {
       )}
 
       {/* Drawer */}
-      {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} />}
+      {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} onSaved={loadData} />}
 
       {/* New CR Modal */}
       {showNewCR && <NewCRModal onClose={() => { setShowNewCR(false); setPreSelected(null); }} onCreated={loadData} preClienteId={preSelected?.clienteId} preProgettoId={preSelected?.progettoId} />}
