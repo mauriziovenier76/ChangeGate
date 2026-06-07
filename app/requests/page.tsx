@@ -25,6 +25,7 @@ type CR = {
 
 type Project = {
   id: string;
+  codice: string;
   name: string;
   client: string;
   clientId: string;
@@ -627,7 +628,7 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
         <div style={{ padding: "11px 14px" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.id.slice(0, 8)}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
         <div style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
@@ -693,7 +694,7 @@ export default function RequestsPage() {
       .from("cg_change_requests")
       .select(`
         id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione, created_at,
-        cg_progetti ( id, nome, cg_clienti ( id, nome ) ),
+        cg_progetti ( id, nome, codice, cg_clienti ( id, nome ) ),
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
       .order("created_at", { ascending: false });
@@ -703,14 +704,15 @@ export default function RequestsPage() {
     // Group by project
     const map = new Map<string, Project>();
     for (const row of data ?? []) {
-      const proj = row.cg_progetti as unknown as { id: string; nome: string; cg_clienti: { id: string; nome: string } } | null;
+      const proj = row.cg_progetti as unknown as { id: string; nome: string; codice: string; cg_clienti: { id: string; nome: string } } | null;
       if (!proj) continue;
       const projId = proj.id;
       if (!map.has(projId)) {
         map.set(projId, {
-          id: projId,
-          name: proj.nome,
-          client: proj.cg_clienti?.nome ?? "—",
+          id:       projId,
+          codice:   proj.codice ?? "—",
+          name:     proj.nome,
+          client:   proj.cg_clienti?.nome ?? "—",
           clientId: proj.cg_clienti?.id ?? "",
           crs: [],
         });
