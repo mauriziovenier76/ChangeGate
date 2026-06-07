@@ -20,6 +20,7 @@ type CR = {
   endDate: string | null;
   assignedTo: string | null;
   description?: string;
+  createdAt: string | null;
 };
 
 type Project = {
@@ -410,29 +411,37 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
 
   const setField = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
-  const handleSave = async () => {
-    if (!selectedProgetto) { setError("Seleziona un progetto."); return; }
-    if (!form.titolo.trim()) { setError("Il titolo è obbligatorio."); return; }
-    setSaving(true);
-    setError(null);
+  const resetForm = () => setForm({
+    titolo: "", descrizione: "", priorita: "Media", stato: "In Attesa",
+    stima_ore: "", data_inizio: "", data_fine: "", pm_id: "", specialista_id: "", note_tecniche: "",
+  });
+
+  const doInsert = async () => {
+    if (!selectedProgetto) { setError("Seleziona un progetto."); return false; }
+    if (!form.titolo.trim()) { setError("Il titolo è obbligatorio."); return false; }
     const { error: err } = await supabase.from("cg_change_requests").insert({
-      progetto_id:    selectedProgetto,
-      titolo:         form.titolo.trim(),
-      descrizione:    form.descrizione || null,
-      priorita:       form.priorita,
-      stato:          form.stato,
-      stima_ore:      form.stima_ore ? parseFloat(form.stima_ore) : null,
-      data_inizio:    form.data_inizio || null,
-      data_fine:      form.data_fine || null,
-      pm_id:          form.pm_id || null,
-      specialista_id: form.specialista_id || null,
-      note_tecniche:  form.note_tecniche || null,
-      codice:         "",
+      progetto_id: selectedProgetto, titolo: form.titolo.trim(), descrizione: form.descrizione || null,
+      priorita: form.priorita, stato: form.stato, stima_ore: form.stima_ore ? parseFloat(form.stima_ore) : null,
+      data_inizio: form.data_inizio || null, data_fine: form.data_fine || null,
+      pm_id: form.pm_id || null, specialista_id: form.specialista_id || null,
+      note_tecniche: form.note_tecniche || null, codice: "",
     });
+    if (err) { setError(err.message); return false; }
+    return true;
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setError(null);
+    const ok = await doInsert();
     setSaving(false);
-    if (err) { setError(err.message); return; }
-    onCreated();
-    onClose();
+    if (ok) { onCreated(); onClose(); }
+  };
+
+  const handleSaveAndNew = async () => {
+    setSaving(true); setError(null);
+    const ok = await doInsert();
+    setSaving(false);
+    if (ok) { onCreated(); resetForm(); }
   };
 
   const pm          = team.filter((t) => t.ruolo === "pm");
@@ -586,6 +595,10 @@ function NewCRModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
             Annulla
           </button>
+          <button onClick={handleSaveAndNew} disabled={saving}
+            style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid #2563eb", background: "none", fontSize: 13, fontWeight: 600, color: "#2563eb", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+            {saving ? "..." : "Crea CR e aggiungi nuova"}
+          </button>
           <button onClick={handleSave} disabled={saving}
             style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
             {saving ? "Salvataggio..." : "Crea CR"}
@@ -606,7 +619,7 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)" }}>
-      <div onClick={() => setOpen(!open)} style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 130px`, alignItems: "center", backgroundColor: "#f0f4ff", cursor: "pointer", userSelect: "none" as const, transition: "background 0.1s" }}
+      <div onClick={() => setOpen(!open)} style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", backgroundColor: "#f0f4ff", cursor: "pointer", userSelect: "none" as const, transition: "background 0.1s" }}
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
       >
@@ -627,12 +640,12 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        <div /><div /><div /><div /><div />
+        <div /><div /><div /><div /><div /><div />
       </div>
 
       {open && project.crs.map((cr) => (
         <div key={cr.id} onClick={() => onSelectCR(cr, project)}
-          style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 130px`, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
+          style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
         >
@@ -655,6 +668,7 @@ function ProjectAccordion({ project, defaultOpen, onSelectCR }: { project: Proje
           </div>
           <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>{formatDate(cr.startDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
           <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>{formatDate(cr.endDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
+          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{cr.createdAt ? formatDate(cr.createdAt) : <span style={{ color: "#cbd5e1" }}>—</span>}</div>
           <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-secondary)" }}>{cr.assignedTo ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
         </div>
       ))}
@@ -678,11 +692,11 @@ export default function RequestsPage() {
     const { data, error } = await supabase
       .from("cg_change_requests")
       .select(`
-        id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione,
+        id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione, created_at,
         cg_progetti ( id, nome, cg_clienti ( id, nome ) ),
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
-      .order("codice");
+      .order("created_at", { ascending: false });
 
     if (error) { console.error(error); setLoading(false); return; }
 
@@ -713,6 +727,7 @@ export default function RequestsPage() {
         endDate:     row.data_fine,
         assignedTo:  pm?.nome ?? null,
         description: row.descrizione ?? undefined,
+        createdAt:   row.created_at ?? null,
       });
     }
     setProjects(Array.from(map.values()));
@@ -781,9 +796,9 @@ export default function RequestsPage() {
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
           {/* Column header */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 130px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc" }}>
             <div />
-            {COL_HEADERS.map((col) => (
+            {["ID", "TITOLO", "STATO", "PRIORITÀ", "STIMA", "INIZIO", "FINE", "INSERITA", "ASSEGNATO A"].map((col) => (
               <div key={col} style={{ padding: "10px 14px", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{col}</div>
             ))}
           </div>
