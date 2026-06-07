@@ -50,8 +50,9 @@ const priorityStyle: Record<CRPriority, { color: string; dot: string }> = {
 
 function formatDate(d: string | null) {
   if (!d) return null;
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 // ─── CheckboxDropdown ─────────────────────────────────────────────────────────
