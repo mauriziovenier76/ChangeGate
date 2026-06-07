@@ -759,7 +759,7 @@ export default function RequestsPage() {
   const COL_HEADERS = ["ID", "TITOLO", "STATO", "PRIORITÀ", "STIMA", "INIZIO", "FINE", "ASSEGNATO A"];
 
   return (
-    <div style={{ maxWidth: 1200 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>

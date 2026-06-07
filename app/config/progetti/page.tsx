@@ -399,7 +399,7 @@ export default function ProgettiPage() {
   const totalActive = progetti.filter((p) => p.attivo).length;
 
   return (
-    <div style={{ maxWidth: 1100 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
