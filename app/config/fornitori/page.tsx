@@ -233,12 +233,126 @@ function NewFornitoreModal({ onClose, onCreated }: { onClose: () => void; onCrea
   );
 }
 
+// ─── Edit Fornitore Drawer ────────────────────────────────────────────────────
+
+function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
+  fornitore: Fornitore; onClose: () => void; onSaved: () => void;
+}) {
+  const [form, setForm] = useState({
+    nome:   fornitore.nome,
+    email:  fornitore.email ?? "",
+    attivo: fornitore.attivo,
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
+
+  const set = (k: string, v: string | boolean) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
+
+  const handleSave = async () => {
+    if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
+    setSaving(true); setError(null);
+    const { error: err } = await supabase.from("cg_fornitori").update({
+      nome:   form.nome.trim(),
+      email:  form.email || null,
+      attivo: form.attivo,
+    }).eq("id", fornitore.id);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setSaved(true);
+    onSaved();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "8px 10px", borderRadius: 7,
+    border: "1.5px solid var(--border)", fontSize: 13,
+    color: "var(--text-primary)", fontFamily: "inherit",
+    outline: "none", boxSizing: "border-box",
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: 11, fontWeight: 600,
+    color: "var(--text-muted)", marginBottom: 5,
+    textTransform: "uppercase", letterSpacing: "0.06em",
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
+      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 440, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* Header */}
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", marginBottom: 4 }}>Modifica fornitore</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{fornitore.nome}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}><X size={18} /></button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+          <div>
+            <label style={labelStyle}>Nome *</label>
+            <input type="text" value={form.nome} onChange={(e) => set("nome", e.target.value)} style={inputStyle} />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Email</label>
+            <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="info@fornitore.it" style={inputStyle} />
+          </div>
+
+          {/* Stats read-only */}
+          <div style={{ backgroundColor: "#eff6ff", borderRadius: 10, padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            {[
+              { label: "PM",         value: fornitore.pm },
+              { label: "Specialisti", value: fornitore.specialisti },
+              { label: "Clienti",    value: fornitore.clientCount },
+              { label: "Progetti",   value: fornitore.projectCount },
+            ].map((s) => (
+              <div key={s.label} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#1e40af", lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "#93c5fd", marginTop: 3 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div onClick={() => set("attivo", !form.attivo)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--border)", cursor: "pointer", backgroundColor: form.attivo ? "#f0fdf4" : "#f8fafc" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Fornitore attivo</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 1 }}>Visibile nelle liste di selezione</div>
+            </div>
+            <div style={{ width: 36, height: 20, borderRadius: 99, backgroundColor: form.attivo ? "#22c55e" : "#cbd5e1", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+              <div style={{ position: "absolute", top: 2, left: form.attivo ? 18 : 2, width: 16, height: 16, borderRadius: "50%", backgroundColor: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+            </div>
+          </div>
+
+          {error && <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
+            Chiudi
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            {saving ? "Salvataggio..." : saved ? "✓ Salvato" : "Salva"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FornitoriPage() {
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [loading, setLoading]     = useState(true);
   const [showNew, setShowNew]     = useState(false);
+  const [editing, setEditing]     = useState<Fornitore | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -405,7 +519,7 @@ export default function FornitoriPage() {
 
                     {/* Azioni */}
                     <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                      <button style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" as const }}>
+                      <button onClick={() => setEditing(f)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" as const }}>
                         Modifica
                       </button>
                     </td>
@@ -417,7 +531,8 @@ export default function FornitoriPage() {
         </div>
       )}
 
-      {showNew && <NewFornitoreModal onClose={() => setShowNew(false)} onCreated={loadData} />}
+      {showNew  && <NewFornitoreModal onClose={() => setShowNew(false)} onCreated={loadData} />}
+      {editing  && <EditFornitoreDrawer fornitore={editing} onClose={() => setEditing(null)} onSaved={loadData} />}
     </div>
   );
 }
