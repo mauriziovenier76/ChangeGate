@@ -172,11 +172,145 @@ function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ClientiPage() {
+// ─── Edit Cliente Drawer ──────────────────────────────────────────────────────
+
+function EditClienteDrawer({ cliente, fornitori, onClose, onSaved }: {
+  cliente: Cliente; fornitori: Fornitore[]; onClose: () => void; onSaved: () => void;
+}) {
+  const [form, setForm] = useState({
+    nome:         cliente.nome,
+    email:        cliente.email        ?? "",
+    telefono:     cliente.telefono     ?? "",
+    indirizzo:    cliente.indirizzo    ?? "",
+    fornitore_id: cliente.fornitore_id ?? "",
+    attivo:       cliente.attivo,
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
+
+  const set = (k: string, v: string | boolean) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
+
+  const handleSave = async () => {
+    if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
+    if (!form.fornitore_id) { setError("Seleziona un fornitore."); return; }
+    setSaving(true); setError(null);
+    const { error: err } = await supabase.from("cg_clienti").update({
+      nome:         form.nome.trim(),
+      email:        form.email     || null,
+      telefono:     form.telefono  || null,
+      indirizzo:    form.indirizzo || null,
+      fornitore_id: form.fornitore_id,
+      attivo:       form.attivo,
+    }).eq("id", cliente.id);
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    setSaved(true);
+    onSaved();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "8px 10px", borderRadius: 7,
+    border: "1.5px solid var(--border)", fontSize: 13,
+    color: "var(--text-primary)", fontFamily: "inherit",
+    outline: "none", boxSizing: "border-box",
+  };
+  const labelStyle: React.CSSProperties = {
+    display: "block", fontSize: 11, fontWeight: 600,
+    color: "var(--text-muted)", marginBottom: 5,
+    textTransform: "uppercase", letterSpacing: "0.06em",
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
+      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 440, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* Header */}
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", marginBottom: 4 }}>Modifica cliente</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{cliente.nome}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}><X size={18} /></button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+          <div>
+            <label style={labelStyle}>Nome *</label>
+            <input type="text" value={form.nome} onChange={(e) => set("nome", e.target.value)} style={inputStyle} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="info@cliente.it" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Telefono</label>
+              <input type="tel" value={form.telefono} onChange={(e) => set("telefono", e.target.value)} placeholder="+39 02 1234567" style={inputStyle} />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Indirizzo</label>
+            <input type="text" value={form.indirizzo} onChange={(e) => set("indirizzo", e.target.value)} placeholder="Via Roma 1, 20100 Milano" style={inputStyle} />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Fornitore di riferimento *</label>
+            <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+              {fornitori.map((f) => {
+                const sel = form.fornitore_id === f.id;
+                return (
+                  <div key={f.id} onClick={() => { set("fornitore_id", f.id); setSaved(false); }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
+                    onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                    onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = sel ? "#eff6ff" : "transparent"; }}>
+                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 400, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
+                    {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div onClick={() => set("attivo", !form.attivo)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--border)", cursor: "pointer", backgroundColor: form.attivo ? "#f0fdf4" : "#f8fafc" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Cliente attivo</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 1 }}>Visibile nelle liste di selezione</div>
+            </div>
+            <div style={{ width: 36, height: 20, borderRadius: 99, backgroundColor: form.attivo ? "#22c55e" : "#cbd5e1", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+              <div style={{ position: "absolute", top: 2, left: form.attivo ? 18 : 2, width: 16, height: 16, borderRadius: "50%", backgroundColor: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+            </div>
+          </div>
+
+          {error && <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
+            Chiudi
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            {saving ? "Salvataggio..." : saved ? "✓ Salvato" : "Salva"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
   const [clienti, setClienti]     = useState<Cliente[]>([]);
+  const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
   const [showNew, setShowNew]     = useState(false);
+  const [editing, setEditing]     = useState<Cliente | null>(null);
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
   const loadData = async () => {
@@ -184,7 +318,7 @@ export default function ClientiPage() {
     const { data, error } = await supabase
       .from("cg_clienti")
       .select(`
-        id, nome, email, attivo, fornitore_id,
+        id, nome, email, telefono, indirizzo, attivo, fornitore_id,
         cg_fornitori ( nome ),
         cg_progetti ( id )
       `)
@@ -199,8 +333,8 @@ export default function ClientiPage() {
         id:             row.id,
         nome:           row.nome,
         email:          row.email,
-        telefono:       null,
-        indirizzo:      null,
+        telefono:       row.telefono,
+        indirizzo:      row.indirizzo,
         attivo:         row.attivo,
         fornitore_id:   row.fornitore_id,
         fornitore_nome: forn?.nome ?? "—",
@@ -210,7 +344,11 @@ export default function ClientiPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+    supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
+      .then(({ data }) => setFornitori(data ?? []));
+  }, []);
 
   const filtered = clienti.filter((c) => {
     const matchSearch = !search ||
@@ -310,7 +448,7 @@ export default function ClientiPage() {
                     </span>
                   </td>
                   <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                    <button style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                    <button onClick={() => setEditing(c)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
                       Modifica
                     </button>
                   </td>
@@ -321,7 +459,8 @@ export default function ClientiPage() {
         </div>
       )}
 
-      {showNew && <NewClienteModal onClose={() => setShowNew(false)} onCreated={loadData} />}
+      {showNew  && <NewClienteModal onClose={() => setShowNew(false)} onCreated={loadData} />}
+      {editing  && <EditClienteDrawer cliente={editing} fornitori={fornitori} onClose={() => setEditing(null)} onSaved={loadData} />}
     </div>
   );
 }
