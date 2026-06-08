@@ -6,7 +6,7 @@ import { useRef, useState, useEffect } from "react";
 import {
   LayoutDashboard, GitPullRequest, CalendarDays,
   Settings, ChevronDown, LogOut, User, FolderGit2,
-  Building2, FolderOpen, Users,
+  Building2, FolderOpen, Users, UserCircle,
 } from "lucide-react";
 
 type NavItem = {
@@ -27,6 +27,7 @@ const nav: NavItem[] = [
       { label: "Clienti",    href: "/config/clienti",   icon: <Building2 size={14} /> },
       { label: "Progetti",   href: "/config/progetti",  icon: <FolderOpen size={14} /> },
       { label: "Fornitori",  href: "/config/fornitori", icon: <Users size={14} /> },
+      { label: "Utenti",     href: "/config/utenti",    icon: <UserCircle size={14} /> },
     ],
   },
 ];
