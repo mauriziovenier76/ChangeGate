@@ -305,6 +305,10 @@ function EditClienteDrawer({ cliente, fornitori, onClose, onSaved }: {
     </>
   );
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ClientiPage() {
   const [clienti, setClienti]     = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [loading, setLoading]     = useState(true);
