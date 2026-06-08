@@ -82,24 +82,33 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
 
 // ─── New / Edit Utente Modal ──────────────────────────────────────────────────
 
-function UtenteModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSaved: () => void; utente?: Utente }) {
+  const isEdit = !!utente;
   const [fornitori, setFornitori] = useState<OptionRow[]>([]);
   const [clienti, setClienti]     = useState<OptionRow[]>([]);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState<string | null>(null);
-  const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">("nessuno");
+  const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">(
+    utente?.fornitore_id ? "fornitore" : utente?.cliente_id ? "cliente" : "nessuno"
+  );
 
   const [form, setForm] = useState({
-    nome: "", email: "", ruolo: "pm" as Ruolo, attivo: true,
-    fornitore_id: "", cliente_id: "",
-    avatar_iniziali: "", avatar_bg: "#2563eb", avatar_colore: "#ffffff",
+    nome:            utente?.nome            ?? "",
+    email:           utente?.email           ?? "",
+    ruolo:           (utente?.ruolo          ?? "pm") as Ruolo,
+    attivo:          utente?.attivo          ?? true,
+    fornitore_id:    utente?.fornitore_id    ?? "",
+    cliente_id:      utente?.cliente_id      ?? "",
+    avatar_iniziali: utente?.avatar_iniziali ?? "",
+    avatar_bg:       utente?.avatar_bg       ?? "#2563eb",
+    avatar_colore:   utente?.avatar_colore   ?? "#ffffff",
   });
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Auto-generate iniziali from nome
+  // Auto-generate iniziali from nome only when creating (not editing)
   useEffect(() => {
-    if (form.nome.trim()) {
+    if (!isEdit && form.nome.trim()) {
       const words = form.nome.trim().split(/\s+/);
       const iniziali = words.length >= 2
         ? (words[0][0] + words[1][0]).toUpperCase()
@@ -119,7 +128,8 @@ function UtenteModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
     if (assocType === "fornitore" && !form.fornitore_id) { setError("Seleziona un fornitore."); return; }
     if (assocType === "cliente"   && !form.cliente_id)   { setError("Seleziona un cliente."); return; }
     setSaving(true); setError(null);
-    const { error: err } = await supabase.from("cg_utenti").insert({
+
+    const payload = {
       nome:             form.nome.trim(),
       email:            form.email || null,
       ruolo:            form.ruolo,
@@ -129,7 +139,12 @@ function UtenteModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
       avatar_iniziali:  form.avatar_iniziali.slice(0, 2).toUpperCase(),
       avatar_bg:        form.avatar_bg,
       avatar_colore:    form.avatar_colore,
-    });
+    };
+
+    const { error: err } = isEdit
+      ? await supabase.from("cg_utenti").update(payload).eq("id", utente!.id)
+      : await supabase.from("cg_utenti").insert(payload);
+
     setSaving(false);
     if (err) { setError(err.message); return; }
     onSaved(); onClose();
@@ -149,8 +164,8 @@ function UtenteModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         {/* Header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Nuovo Utente</h2>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "3px 0 0" }}>Configura l&apos;account e l&apos;avatar</p>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{isEdit ? "Modifica Utente" : "Nuovo Utente"}</h2>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "3px 0 0" }}>{isEdit ? `Stai modificando ${utente!.nome}` : "Configura l'account e l'avatar"}</p>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}><X size={20} /></button>
         </div>
@@ -267,7 +282,7 @@ function UtenteModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
           <button onClick={onClose} style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Annulla</button>
           <button onClick={handleSave} disabled={saving}
             style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
-            {saving ? "Salvataggio..." : "Crea utente"}
+            {saving ? "Salvataggio..." : isEdit ? "Salva modifiche" : "Crea utente"}
           </button>
         </div>
       </div>
@@ -281,7 +296,8 @@ export default function UtentiPage() {
   const [utenti, setUtenti]     = useState<Utente[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
-  const [showNew, setShowNew]   = useState(false);
+  const [showNew, setShowNew]       = useState(false);
+  const [editing, setEditing]       = useState<Utente | null>(null);
   const [filterRuolo, setFilterRuolo]   = useState<Ruolo | "tutti">("tutti");
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
@@ -418,7 +434,7 @@ export default function UtentiPage() {
                   </td>
                   {/* Azioni */}
                   <td style={{ padding: "12px 18px", textAlign: "right" }}>
-                    <button style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
+                    <button onClick={() => setEditing(u)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
                   </td>
                 </tr>
               ))}
@@ -427,7 +443,8 @@ export default function UtentiPage() {
         </div>
       )}
 
-      {showNew && <UtenteModal onClose={() => setShowNew(false)} onSaved={loadData} />}
+      {showNew  && <UtenteModal onClose={() => setShowNew(false)}    onSaved={loadData} />}
+      {editing  && <UtenteModal onClose={() => setEditing(null)}     onSaved={loadData} utente={editing} />}
     </div>
   );
 }
