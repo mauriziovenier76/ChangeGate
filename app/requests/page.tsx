@@ -20,7 +20,30 @@ type CR = {
   endDate: string | null;
   assignedTo: string | null;
   description?: string;
+  noteCliente?: string;
   createdAt: string | null;
+  // TEST - Previsione
+  testPrevOre: number | null;
+  testPrevDa: string | null;
+  testPrevA: string | null;
+  // TEST - Effettivo
+  testEffOre: number | null;
+  testEffDa: string | null;
+  testEffA: string | null;
+  // TEST - Validazione
+  testValData: string | null;
+  testValUtente: string | null;
+  // PROD - Previsione
+  prodPrevOre: number | null;
+  prodPrevDa: string | null;
+  prodPrevA: string | null;
+  // PROD - Effettivo
+  prodEffOre: number | null;
+  prodEffDa: string | null;
+  prodEffA: string | null;
+  // PROD - Validazione
+  prodValData: string | null;
+  prodValUtente: string | null;
 };
 
 type Project = {
@@ -218,11 +241,30 @@ function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project;
   const [form, setForm] = useState({
     titolo:      cr.title,
     descrizione: cr.description ?? "",
+    note_cliente: cr.noteCliente ?? "",
     stato:       cr.status as string,
     priorita:    cr.priority as string,
     stima_ore:   cr.estimate ? String(cr.estimate) : "",
     data_inizio: cr.startDate ?? "",
     data_fine:   cr.endDate ?? "",
+    // TEST
+    test_prev_ore: cr.testPrevOre ? String(cr.testPrevOre) : "",
+    test_prev_da:  cr.testPrevDa  ?? "",
+    test_prev_a:   cr.testPrevA   ?? "",
+    test_eff_ore:  cr.testEffOre  ? String(cr.testEffOre) : "",
+    test_eff_da:   cr.testEffDa   ?? "",
+    test_eff_a:    cr.testEffA    ?? "",
+    test_val_data: cr.testValData ?? "",
+    test_val_utente: cr.testValUtente ?? "",
+    // PROD
+    prod_prev_ore: cr.prodPrevOre ? String(cr.prodPrevOre) : "",
+    prod_prev_da:  cr.prodPrevDa  ?? "",
+    prod_prev_a:   cr.prodPrevA   ?? "",
+    prod_eff_ore:  cr.prodEffOre  ? String(cr.prodEffOre) : "",
+    prod_eff_da:   cr.prodEffDa   ?? "",
+    prod_eff_a:    cr.prodEffA    ?? "",
+    prod_val_data: cr.prodValData ?? "",
+    prod_val_utente: cr.prodValUtente ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -233,127 +275,135 @@ function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project;
   const handleSave = async () => {
     if (!form.titolo.trim()) { setError("Il titolo è obbligatorio."); return; }
     setSaving(true); setError(null);
+    const n = (v: string) => v || null;
+    const num = (v: string) => v ? parseFloat(v) : null;
     const { error: err } = await supabase.from("cg_change_requests").update({
-      titolo:      form.titolo.trim(),
-      descrizione: form.descrizione || null,
-      stato:       form.stato,
-      priorita:    form.priorita,
-      stima_ore:   form.stima_ore ? parseFloat(form.stima_ore) : null,
-      data_inizio: form.data_inizio || null,
-      data_fine:   form.data_fine || null,
+      titolo: form.titolo.trim(), descrizione: n(form.descrizione),
+      note_cliente: n(form.note_cliente), stato: form.stato, priorita: form.priorita,
+      stima_ore: num(form.stima_ore), data_inizio: n(form.data_inizio), data_fine: n(form.data_fine),
+      test_prev_ore: num(form.test_prev_ore), test_prev_da: n(form.test_prev_da), test_prev_a: n(form.test_prev_a),
+      test_eff_ore: num(form.test_eff_ore), test_eff_da: n(form.test_eff_da), test_eff_a: n(form.test_eff_a),
+      test_val_data: n(form.test_val_data), test_val_utente: n(form.test_val_utente),
+      prod_prev_ore: num(form.prod_prev_ore), prod_prev_da: n(form.prod_prev_da), prod_prev_a: n(form.prod_prev_a),
+      prod_eff_ore: num(form.prod_eff_ore), prod_eff_da: n(form.prod_eff_da), prod_eff_a: n(form.prod_eff_a),
+      prod_val_data: n(form.prod_val_data), prod_val_utente: n(form.prod_val_utente),
     }).eq("id", cr.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
-    setSaved(true);
-    onSaved();
+    setSaved(true); onSaved();
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 10px", borderRadius: 7,
-    border: "1.5px solid var(--border)", fontSize: 13,
-    color: "var(--text-primary)", fontFamily: "inherit",
-    outline: "none", boxSizing: "border-box",
-    backgroundColor: "white",
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 600,
-    color: "var(--text-muted)", marginBottom: 5,
-    textTransform: "uppercase", letterSpacing: "0.06em",
-  };
+  const inp: React.CSSProperties = { width: "100%", padding: "7px 9px", borderRadius: 7, border: "1.5px solid var(--border)", fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit", outline: "none", boxSizing: "border-box", backgroundColor: "white" };
+  const lbl: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" };
+  const sec = (title: string, color = "#0f172a") => (
+    <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10, paddingBottom: 5, borderBottom: `2px solid ${color}22` }}>{title}</div>
+  );
+  const subsec = (title: string) => (
+    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 8, marginTop: 4 }}>{title}</div>
+  );
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
-      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 480, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 520, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 12, fontFamily: "DM Mono, monospace", color: "#2563eb", fontWeight: 600, marginBottom: 4 }}>{cr.codice} · {project.name}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{project.client}</div>
+            <div style={{ fontSize: 12, fontFamily: "DM Mono, monospace", color: "#2563eb", fontWeight: 600, marginBottom: 3 }}>{cr.codice} · {project.name} · {project.client}</div>
+            {cr.createdAt && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Inserita il {formatDate(cr.createdAt)}</div>}
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", marginLeft: 12, flexShrink: 0 }}><X size={18} /></button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)", flexShrink: 0 }}><X size={18} /></button>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px", display: "flex", flexDirection: "column", gap: 18 }}>
 
-          {/* Titolo */}
+          {/* ── Generale ── */}
+          {sec("Generale")}
           <div>
-            <label style={labelStyle}>Titolo *</label>
-            <input type="text" value={form.titolo} onChange={(e) => set("titolo", e.target.value)} style={inputStyle} />
+            <label style={lbl}>Titolo *</label>
+            <input type="text" value={form.titolo} onChange={(e) => set("titolo", e.target.value)} style={inp} />
           </div>
-
-          {/* Stato + Priorità */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={labelStyle}>Stato</label>
-              <select value={form.stato} onChange={(e) => set("stato", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
-                {["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"].map((s) => <option key={s}>{s}</option>)}
+              <label style={lbl}>Stato</label>
+              <select value={form.stato} onChange={(e) => set("stato", e.target.value)} style={{ ...inp, cursor: "pointer" }}>
+                {["In Attesa","In Approvazione","In Lavorazione","Completata","Bloccata"].map((s) => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Priorità</label>
-              <select value={form.priorita} onChange={(e) => set("priorita", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
-                {["Alta", "Media", "Bassa"].map((p) => <option key={p}>{p}</option>)}
+              <label style={lbl}>Priorità</label>
+              <select value={form.priorita} onChange={(e) => set("priorita", e.target.value)} style={{ ...inp, cursor: "pointer" }}>
+                {["Alta","Media","Bassa"].map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
           </div>
-
-          {/* Stima + Date */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Stima (ore)</label>
-              <input type="number" min="0" step="0.5" value={form.stima_ore} onChange={(e) => set("stima_ore", e.target.value)} style={inputStyle} placeholder="—" />
-            </div>
-            <div>
-              <label style={labelStyle}>Data inizio</label>
-              <input type="date" value={form.data_inizio} onChange={(e) => set("data_inizio", e.target.value)} style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>Data fine</label>
-              <input type="date" value={form.data_fine} onChange={(e) => set("data_fine", e.target.value)} style={inputStyle} />
-            </div>
-          </div>
-
-          {/* Descrizione */}
           <div>
-            <label style={labelStyle}>Descrizione</label>
-            <textarea value={form.descrizione} onChange={(e) => set("descrizione", e.target.value)}
-              placeholder="Nessuna descrizione inserita."
-              style={{ ...inputStyle, minHeight: 90, resize: "vertical" as const }} />
+            <label style={lbl}>Dettaglio</label>
+            <textarea value={form.descrizione} onChange={(e) => set("descrizione", e.target.value)} placeholder="Descrizione della richiesta..."
+              style={{ ...inp, minHeight: 70, resize: "vertical" as const }} />
+          </div>
+          <div>
+            <label style={lbl}>Note per il Cliente</label>
+            <textarea value={form.note_cliente} onChange={(e) => set("note_cliente", e.target.value)} placeholder="Note visibili al cliente..."
+              style={{ ...inp, minHeight: 60, resize: "vertical" as const }} />
           </div>
 
-          {/* Info non modificabili */}
-          <div style={{ backgroundColor: "#eff6ff", borderRadius: 10, padding: "12px 14px", display: "flex", gap: 24 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Cliente</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#1e40af" }}>{project.client}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Progetto</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#1e40af" }}>{project.name}</div>
-            </div>
-            {cr.createdAt && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#93c5fd", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: 3 }}>Inserita</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#1e40af" }}>{formatDate(cr.createdAt)}</div>
-              </div>
-            )}
+          {/* ── Ambiente di Test ── */}
+          {sec("Ambiente di Test", "#0891b2")}
+
+          {subsec("Previsione")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Ore stimate</label><input type="number" min="0" step="0.5" value={form.test_prev_ore} onChange={(e) => set("test_prev_ore", e.target.value)} style={inp} placeholder="—" /></div>
+            <div><label style={lbl}>Da data</label><input type="date" value={form.test_prev_da} onChange={(e) => set("test_prev_da", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>A data</label><input type="date" value={form.test_prev_a} onChange={(e) => set("test_prev_a", e.target.value)} style={inp} /></div>
           </div>
 
-          {error && (
-            <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>
-          )}
+          {subsec("Effettivo")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Ore effettive</label><input type="number" min="0" step="0.5" value={form.test_eff_ore} onChange={(e) => set("test_eff_ore", e.target.value)} style={inp} placeholder="—" /></div>
+            <div><label style={lbl}>Da data</label><input type="date" value={form.test_eff_da} onChange={(e) => set("test_eff_da", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>A data</label><input type="date" value={form.test_eff_a} onChange={(e) => set("test_eff_a", e.target.value)} style={inp} /></div>
+          </div>
+
+          {subsec("Validazione")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Data validazione</label><input type="date" value={form.test_val_data} onChange={(e) => set("test_val_data", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Utente validazione</label><input type="text" value={form.test_val_utente} onChange={(e) => set("test_val_utente", e.target.value)} style={inp} placeholder="Nome utente" /></div>
+          </div>
+
+          {/* ── Ambiente di Produzione ── */}
+          {sec("Ambiente di Produzione", "#7c3aed")}
+
+          {subsec("Previsione")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Ore stimate</label><input type="number" min="0" step="0.5" value={form.prod_prev_ore} onChange={(e) => set("prod_prev_ore", e.target.value)} style={inp} placeholder="—" /></div>
+            <div><label style={lbl}>Da data</label><input type="date" value={form.prod_prev_da} onChange={(e) => set("prod_prev_da", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>A data</label><input type="date" value={form.prod_prev_a} onChange={(e) => set("prod_prev_a", e.target.value)} style={inp} /></div>
+          </div>
+
+          {subsec("Effettivo")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Ore effettive</label><input type="number" min="0" step="0.5" value={form.prod_eff_ore} onChange={(e) => set("prod_eff_ore", e.target.value)} style={inp} placeholder="—" /></div>
+            <div><label style={lbl}>Da data</label><input type="date" value={form.prod_eff_da} onChange={(e) => set("prod_eff_da", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>A data</label><input type="date" value={form.prod_eff_a} onChange={(e) => set("prod_eff_a", e.target.value)} style={inp} /></div>
+          </div>
+
+          {subsec("Validazione")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={lbl}>Data validazione</label><input type="date" value={form.prod_val_data} onChange={(e) => set("prod_val_data", e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Utente validazione</label><input type="text" value={form.prod_val_utente} onChange={(e) => set("prod_val_utente", e.target.value)} style={inp} placeholder="Nome utente" /></div>
+          </div>
+
+          {error && <div style={{ padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>
-            Chiudi
-          </button>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Chiudi</button>
           <button onClick={handleSave} disabled={saving}
-            style={{ flex: 1, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
+            style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
             {saving ? "Salvataggio..." : saved ? "✓ Salvato" : "Salva"}
           </button>
         </div>
@@ -456,16 +506,18 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
   const [error, setError]   = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    titolo: "",
-    descrizione: "",
-    priorita: "Media" as CRPriority,
-    stato: "In Attesa" as CRStatus,
-    stima_ore: "",
-    data_inizio: "",
-    data_fine: "",
-    pm_id: "",
-    specialista_id: "",
-    note_tecniche: "",
+    titolo: "", descrizione: "", note_cliente: "",
+    priorita: "Media" as CRPriority, stato: "In Attesa" as CRStatus,
+    stima_ore: "", data_inizio: "", data_fine: "",
+    pm_id: "", specialista_id: "", note_tecniche: "",
+    // TEST
+    test_prev_ore: "", test_prev_da: "", test_prev_a: "",
+    test_eff_ore: "",  test_eff_da: "",  test_eff_a: "",
+    test_val_data: "", test_val_utente: "",
+    // PROD
+    prod_prev_ore: "", prod_prev_da: "", prod_prev_a: "",
+    prod_eff_ore: "",  prod_eff_da: "",  prod_eff_a: "",
+    prod_val_data: "", prod_val_utente: "",
   });
 
   // Load clienti on mount
@@ -505,19 +557,37 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
   const setField = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const resetForm = () => setForm({
-    titolo: "", descrizione: "", priorita: "Media", stato: "In Attesa",
-    stima_ore: "", data_inizio: "", data_fine: "", pm_id: "", specialista_id: "", note_tecniche: "",
+    titolo: "", descrizione: "", note_cliente: "",
+    priorita: "Media", stato: "In Attesa",
+    stima_ore: "", data_inizio: "", data_fine: "",
+    pm_id: "", specialista_id: "", note_tecniche: "",
+    test_prev_ore: "", test_prev_da: "", test_prev_a: "",
+    test_eff_ore: "",  test_eff_da: "",  test_eff_a: "",
+    test_val_data: "", test_val_utente: "",
+    prod_prev_ore: "", prod_prev_da: "", prod_prev_a: "",
+    prod_eff_ore: "",  prod_eff_da: "",  prod_eff_a: "",
+    prod_val_data: "", prod_val_utente: "",
   });
+
+  const n   = (v: string) => v || null;
+  const num = (v: string) => v ? parseFloat(v) : null;
 
   const doInsert = async () => {
     if (!selectedProgetto) { setError("Seleziona un progetto."); return false; }
     if (!form.titolo.trim()) { setError("Il titolo è obbligatorio."); return false; }
     const { error: err } = await supabase.from("cg_change_requests").insert({
-      progetto_id: selectedProgetto, titolo: form.titolo.trim(), descrizione: form.descrizione || null,
-      priorita: form.priorita, stato: form.stato, stima_ore: form.stima_ore ? parseFloat(form.stima_ore) : null,
-      data_inizio: form.data_inizio || null, data_fine: form.data_fine || null,
-      pm_id: form.pm_id || null, specialista_id: form.specialista_id || null,
-      note_tecniche: form.note_tecniche || null, codice: "",
+      progetto_id: selectedProgetto, titolo: form.titolo.trim(),
+      descrizione: n(form.descrizione), note_cliente: n(form.note_cliente),
+      priorita: form.priorita, stato: form.stato,
+      stima_ore: num(form.stima_ore), data_inizio: n(form.data_inizio), data_fine: n(form.data_fine),
+      pm_id: n(form.pm_id), specialista_id: n(form.specialista_id),
+      note_tecniche: n(form.note_tecniche), codice: "",
+      test_prev_ore: num(form.test_prev_ore), test_prev_da: n(form.test_prev_da), test_prev_a: n(form.test_prev_a),
+      test_eff_ore:  num(form.test_eff_ore),  test_eff_da:  n(form.test_eff_da),  test_eff_a:  n(form.test_eff_a),
+      test_val_data: n(form.test_val_data), test_val_utente: n(form.test_val_utente),
+      prod_prev_ore: num(form.prod_prev_ore), prod_prev_da: n(form.prod_prev_da), prod_prev_a: n(form.prod_prev_a),
+      prod_eff_ore:  num(form.prod_eff_ore),  prod_eff_da:  n(form.prod_eff_da),  prod_eff_a:  n(form.prod_eff_a),
+      prod_val_data: n(form.prod_val_data), prod_val_utente: n(form.prod_val_utente),
     });
     if (err) { setError(err.message); return false; }
     return true;
@@ -614,7 +684,7 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
             <textarea placeholder="Descrivi la richiesta in dettaglio..." value={form.descrizione} onChange={(e) => setField("descrizione", e.target.value)}
               style={{ ...inputStyle, minHeight: 80, resize: "vertical" as const }} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 10 }}>
             <div>
               <label style={labelStyle}>Priorità</label>
               <select value={form.priorita} onChange={(e) => setField("priorita", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
@@ -627,6 +697,11 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
                 {["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"].map((s) => <option key={s}>{s}</option>)}
               </select>
             </div>
+          </div>
+          <div style={{ marginBottom: 28 }}>
+            <label style={labelStyle}>Note per il Cliente</label>
+            <textarea placeholder="Note visibili al cliente..." value={form.note_cliente} onChange={(e) => setField("note_cliente", e.target.value)}
+              style={{ ...inputStyle, minHeight: 56, resize: "vertical" as const }} />
           </div>
 
           {/* ── Sezione 3: Pianificazione ── */}
@@ -651,29 +726,51 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>PM responsabile</label>
-              <SearchableListbox
-                items={pm.map((t) => ({ id: t.id, label: t.nome, sub: "Project Manager" }))}
-                selected={form.pm_id}
-                onSelect={(id) => setField("pm_id", id)}
-                placeholder="Cerca PM..."
-                disabled={!selectedCliente}
-              />
+              <SearchableListbox items={pm.map((t) => ({ id: t.id, label: t.nome, sub: "Project Manager" }))} selected={form.pm_id} onSelect={(id) => setField("pm_id", id)} placeholder="Cerca PM..." disabled={!selectedCliente} />
             </div>
             <div>
               <label style={labelStyle}>Specialista</label>
-              <SearchableListbox
-                items={specialisti.map((t) => ({ id: t.id, label: t.nome, sub: "Specialista" }))}
-                selected={form.specialista_id}
-                onSelect={(id) => setField("specialista_id", id)}
-                placeholder="Cerca specialista..."
-                disabled={!selectedCliente}
-              />
+              <SearchableListbox items={specialisti.map((t) => ({ id: t.id, label: t.nome, sub: "Specialista" }))} selected={form.specialista_id} onSelect={(id) => setField("specialista_id", id)} placeholder="Cerca specialista..." disabled={!selectedCliente} />
             </div>
           </div>
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: 28 }}>
             <label style={labelStyle}>Note tecniche</label>
             <textarea placeholder="Note interne per il team tecnico..." value={form.note_tecniche} onChange={(e) => setField("note_tecniche", e.target.value)}
-              style={{ ...inputStyle, minHeight: 64, resize: "vertical" as const }} />
+              style={{ ...inputStyle, minHeight: 56, resize: "vertical" as const }} />
+          </div>
+
+          {/* ── Sezione 5: Ambiente di Test ── */}
+          {sectionTitle("5 · Ambiente di Test")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 10 }}>
+            <div><label style={labelStyle}>Ore stimate (prev.)</label><input type="number" min="0" step="0.5" value={form.test_prev_ore} onChange={(e) => setField("test_prev_ore", e.target.value)} style={inputStyle} placeholder="—" /></div>
+            <div><label style={labelStyle}>Da data (prev.)</label><input type="date" value={form.test_prev_da} onChange={(e) => setField("test_prev_da", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>A data (prev.)</label><input type="date" value={form.test_prev_a} onChange={(e) => setField("test_prev_a", e.target.value)} style={inputStyle} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 10 }}>
+            <div><label style={labelStyle}>Ore effettive</label><input type="number" min="0" step="0.5" value={form.test_eff_ore} onChange={(e) => setField("test_eff_ore", e.target.value)} style={inputStyle} placeholder="—" /></div>
+            <div><label style={labelStyle}>Da data (eff.)</label><input type="date" value={form.test_eff_da} onChange={(e) => setField("test_eff_da", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>A data (eff.)</label><input type="date" value={form.test_eff_a} onChange={(e) => setField("test_eff_a", e.target.value)} style={inputStyle} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
+            <div><label style={labelStyle}>Data validazione</label><input type="date" value={form.test_val_data} onChange={(e) => setField("test_val_data", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Utente validazione</label><input type="text" value={form.test_val_utente} onChange={(e) => setField("test_val_utente", e.target.value)} style={inputStyle} placeholder="Nome utente" /></div>
+          </div>
+
+          {/* ── Sezione 6: Ambiente di Produzione ── */}
+          {sectionTitle("6 · Ambiente di Produzione")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 10 }}>
+            <div><label style={labelStyle}>Ore stimate (prev.)</label><input type="number" min="0" step="0.5" value={form.prod_prev_ore} onChange={(e) => setField("prod_prev_ore", e.target.value)} style={inputStyle} placeholder="—" /></div>
+            <div><label style={labelStyle}>Da data (prev.)</label><input type="date" value={form.prod_prev_da} onChange={(e) => setField("prod_prev_da", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>A data (prev.)</label><input type="date" value={form.prod_prev_a} onChange={(e) => setField("prod_prev_a", e.target.value)} style={inputStyle} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 10 }}>
+            <div><label style={labelStyle}>Ore effettive</label><input type="number" min="0" step="0.5" value={form.prod_eff_ore} onChange={(e) => setField("prod_eff_ore", e.target.value)} style={inputStyle} placeholder="—" /></div>
+            <div><label style={labelStyle}>Da data (eff.)</label><input type="date" value={form.prod_eff_da} onChange={(e) => setField("prod_eff_da", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>A data (eff.)</label><input type="date" value={form.prod_eff_a} onChange={(e) => setField("prod_eff_a", e.target.value)} style={inputStyle} /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+            <div><label style={labelStyle}>Data validazione</label><input type="date" value={form.prod_val_data} onChange={(e) => setField("prod_val_data", e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Utente validazione</label><input type="text" value={form.prod_val_utente} onChange={(e) => setField("prod_val_utente", e.target.value)} style={inputStyle} placeholder="Nome utente" /></div>
           </div>
 
           {error && (
@@ -713,76 +810,91 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
   const pct   = total === 0 ? 0 : Math.round((done / total) * 100);
   const open  = isOpen;
 
+  const GRID = `28px 100px minmax(180px,1fr) 140px 90px 80px 100px 100px 90px 100px 100px 90px 100px 100px 90px 100px 100px 90px 100px 90px 100px 100px 90px 130px`;
+
   return (
-    <div style={{ borderBottom: "1px solid var(--border)" }}>
-      <div style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", backgroundColor: "#f0f4ff", transition: "background 0.1s" }}
+    <div style={{ borderBottom: "1px solid var(--border)", minWidth: "max-content" }}>
+      <div style={{ display: "grid", gridTemplateColumns: GRID, alignItems: "center", backgroundColor: "#f0f4ff", transition: "background 0.1s" }}
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
       >
-        {/* Chevron — click to collapse */}
         <div onClick={() => onToggle()} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: "11px 0", height: "100%" }}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
-        {/* Project codice — click to collapse */}
-        <div onClick={() => onToggle()} style={{ padding: "11px 14px", cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 10px", cursor: "pointer" }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
-        {/* Name + client + + button — in one cell */}
-        <div onClick={() => onToggle()} style={{ padding: "11px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
             <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onAddCR(project); }}
-            title={`Nuova CR per ${project.name}`}
+          <button onClick={(e) => { e.stopPropagation(); onAddCR(project); }} title={`Nuova CR per ${project.name}`}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#0f172a", fontSize: 20, fontWeight: 300, lineHeight: 1, display: "flex", alignItems: "center", flexShrink: 0 }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#2563eb")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#0f172a")}
-          >
-            +
-          </button>
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#0f172a")}>+</button>
         </div>
-        {/* Progress — click to collapse */}
-        <div onClick={() => onToggle()} style={{ padding: "11px 14px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: "11px 10px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <div style={{ flex: 1, height: 5, backgroundColor: "#cbd5e1", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        <div /><div /><div /><div /><div /><div />
+        {Array(20).fill(null).map((_, i) => <div key={i} />)}
       </div>
 
-      {open && project.crs.map((cr) => (
-        <div key={cr.id} onClick={() => onSelectCR(cr, project)}
-          style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-        >
-          <div />
-          <div style={{ padding: "11px 14px" }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.codice}</span>
-          </div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{cr.title}</div>
-          <div style={{ padding: "11px 14px" }}>
-            <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>{cr.status}</span>
-          </div>
-          <div style={{ padding: "11px 14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot }} />
-              <span style={{ fontSize: 13, color: priorityStyle[cr.priority].color, fontWeight: 600 }}>{cr.priority}</span>
+      {open && project.crs.map((cr) => {
+        const d = (v: string | null) => v ? formatDate(v) : <span style={{ color: "#cbd5e1" }}>—</span>;
+        const h = (v: number | null) => v != null ? `${v}h` : <span style={{ color: "#cbd5e1" }}>—</span>;
+        const t = (v: string | null) => v || <span style={{ color: "#cbd5e1" }}>—</span>;
+        return (
+          <div key={cr.id} onClick={() => onSelectCR(cr, project)}
+            style={{ display: "grid", gridTemplateColumns: GRID, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+          >
+            <div />
+            <div style={{ padding: "10px 10px" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.codice}</span></div>
+            <div style={{ padding: "10px 10px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{cr.title}</div>
+            <div style={{ padding: "10px 10px" }}>
+              <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>{cr.status}</span>
             </div>
+            <div style={{ padding: "10px 10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot }} />
+                <span style={{ fontSize: 12, color: priorityStyle[cr.priority].color, fontWeight: 600 }}>{cr.priority}</span>
+              </div>
+            </div>
+            {/* Generale */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.estimate)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.createdAt)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t(cr.noteCliente ?? null)}</div>
+            {/* TEST - Previsione */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.testPrevOre)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testPrevDa)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testPrevA)}</div>
+            {/* TEST - Effettivo */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.testEffOre)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testEffDa)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testEffA)}</div>
+            {/* TEST - Validazione */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testValData)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{t(cr.testValUtente)}</div>
+            {/* PROD - Previsione */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.prodPrevOre)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodPrevDa)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodPrevA)}</div>
+            {/* PROD - Effettivo */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.prodEffOre)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodEffDa)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodEffA)}</div>
+            {/* PROD - Validazione */}
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodValData)}</div>
+            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{t(cr.prodValUtente)}</div>
           </div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-secondary)" }}>
-            {cr.estimate ? `${cr.estimate}h` : <span style={{ color: "#cbd5e1" }}>—</span>}
-          </div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>{formatDate(cr.startDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)" }}>{formatDate(cr.endDate) ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{cr.createdAt ? formatDate(cr.createdAt) : <span style={{ color: "#cbd5e1" }}>—</span>}</div>
-          <div style={{ padding: "11px 14px", fontSize: 13, color: "var(--text-secondary)" }}>{cr.assignedTo ?? <span style={{ color: "#cbd5e1" }}>—</span>}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -819,7 +931,13 @@ export default function RequestsPage() {
     const { data, error } = await supabase
       .from("cg_change_requests")
       .select(`
-        id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione, created_at,
+        id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione, note_cliente, created_at,
+        test_prev_ore, test_prev_da, test_prev_a,
+        test_eff_ore, test_eff_da, test_eff_a,
+        test_val_data, test_val_utente,
+        prod_prev_ore, prod_prev_da, prod_prev_a,
+        prod_eff_ore, prod_eff_da, prod_eff_a,
+        prod_val_data, prod_val_utente,
         cg_progetti ( id, nome, codice, cg_clienti ( id, nome ) ),
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
@@ -855,7 +973,14 @@ export default function RequestsPage() {
         endDate:     row.data_fine,
         assignedTo:  pm?.nome ?? null,
         description: row.descrizione ?? undefined,
+        noteCliente: row.note_cliente ?? undefined,
         createdAt:   row.created_at ?? null,
+        testPrevOre: row.test_prev_ore, testPrevDa: row.test_prev_da, testPrevA: row.test_prev_a,
+        testEffOre:  row.test_eff_ore,  testEffDa:  row.test_eff_da,  testEffA:  row.test_eff_a,
+        testValData: row.test_val_data, testValUtente: row.test_val_utente,
+        prodPrevOre: row.prod_prev_ore, prodPrevDa: row.prod_prev_da, prodPrevA: row.prod_prev_a,
+        prodEffOre:  row.prod_eff_ore,  prodEffDa:  row.prod_eff_da,  prodEffA:  row.prod_eff_a,
+        prodValData: row.prod_val_data, prodValUtente: row.prod_val_utente,
       });
     }
     const projectList = Array.from(map.values());
@@ -930,12 +1055,28 @@ export default function RequestsPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun risultato trovato</div>
       ) : (
-        <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
           {/* Column header */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 1fr 150px 100px 80px 100px 100px 110px 130px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `28px 100px minmax(180px,1fr) 140px 90px 80px 100px 100px 110px 110px 90px 100px 100px 90px 100px 100px 90px 100px 90px 100px 100px 90px 130px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", minWidth: "max-content" }}>
             <div />
-            {["ID", "TITOLO", "STATO", "PRIORITÀ", "STIMA", "INIZIO", "FINE", "INSERITA", "ASSEGNATO A"].map((col) => (
-              <div key={col} style={{ padding: "10px 14px", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{col}</div>
+            {[
+              "ID", "TITOLO", "STATO", "PRIORITÀ",
+              // Generale
+              "STIMA", "INS.", "NOTE CLIENTE",
+              // TEST - Previsione
+              "T.PREV.ORE", "T.PREV.DA", "T.PREV.A",
+              // TEST - Effettivo
+              "T.EFF.ORE", "T.EFF.DA", "T.EFF.A",
+              // TEST - Validazione
+              "T.VAL.DATA", "T.VAL.UTENTE",
+              // PROD - Previsione
+              "P.PREV.ORE", "P.PREV.DA", "P.PREV.A",
+              // PROD - Effettivo
+              "P.EFF.ORE", "P.EFF.DA", "P.EFF.A",
+              // PROD - Validazione
+              "P.VAL.DATA", "P.VAL.UTENTE",
+            ].map((col) => (
+              <div key={col} style={{ padding: "10px 10px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{col}</div>
             ))}
           </div>
           {filtered.map((project) => (
