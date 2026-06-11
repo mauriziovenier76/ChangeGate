@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Timer Argomento / Slide</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 550px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    label { display: block; margin-top: 10px; font-weight: 600; }
+    input { width: 100%; padding: 6px; margin-top: 4px; }
+    button { margin-top: 10px; padding: 8px 14px; cursor: pointer; }
+    .timers { margin-top: 20px; font-size: 18px; }
+    .highlight { font-size: 22px; font-weight: 700; }
+    hr { margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Timer Argomento / Slide</h2>
+
+    <label>Tempo totale argomento (minuti)</label>
+    <input type="number" id="totalMinutes" value="20" min="1">
+
+    <label>Numero di slide</label>
+    <input type="number" id="numSlides" value="10" min="1">
+
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pausa</button>
+    <button id="resetBtn">Reset</button>
+
+    <hr>
+
+    <button id="prevSlideBtn">Slide precedente</button>
+    <button id="nextSlideBtn">Slide successiva</button>
+
+    <div class="timers">
+      <div><strong>Slide corrente:</strong> <span id="slideIndex">-</span></div>
+      <div><strong>Tempo totale rimanente:</strong> <span id="totalCountdown">00:00</span></div>
+      <div><strong>Tempo slide rimanente:</strong> <span id="slideCountdown" class="highlight">00:00</span></div>
+      <div><strong>Scostamento dal tempo ideale:</strong> 
+        <span id="deltaTime" class="highlight">0:00</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const totalMinutesInput = document.getElementById('totalMinutes');
+    const numSlidesInput = document.getElementById('numSlides');
+
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const prevSlideBtn = document.getElementById('prevSlideBtn');
+    const nextSlideBtn = document.getElementById('nextSlideBtn');
+
+    const slideIndexEl = document.getElementById('slideIndex');
+    const totalCountdownEl = document.getElementById('totalCountdown');
+    const slideCountdownEl = document.getElementById('slideCountdown');
+    const deltaTimeEl = document.getElementById('deltaTime');
+
+    let totalSeconds = 0;
+    let perSlideSeconds = 0;
+    let elapsedTotal = 0;
+    let elapsedSlide = 0;
+    let currentSlide = 1;
+    let timerId = null;
+    let running = false;
+
+    function format(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // NUOVA FORMULA
+    function updateDelta() {
+      const totalRemaining = totalSeconds - elapsedTotal;
+
+      const slidesRemaining = Number(numSlidesInput.value) - currentSlide;
+      const idealRemaining =
+        (slidesRemaining * perSlideSeconds) +
+        (perSlideSeconds - elapsedSlide);
+
+      const delta = totalRemaining - idealRemaining;
+
+      let prefix = delta >= 0 ? "+" : "-";
+      const formatted = prefix + format(Math.abs(Math.floor(delta)));
+
+      deltaTimeEl.textContent =
+        formatted + (delta >= 0 ? " (in anticipo)" : " (in ritardo)");
+    }
+
+    function updateDisplay() {
+      const remainingTotal = Math.max(totalSeconds - elapsedTotal, 0);
+      const remainingSlide = Math.max(perSlideSeconds - elapsedSlide, 0);
+
+      totalCountdownEl.textContent = format(remainingTotal);
+      slideCountdownEl.textContent = format(remainingSlide);
+      slideIndexEl.textContent = `${currentSlide} di ${numSlidesInput.value}`;
+
+      updateDelta();
+    }
+
+    function tick() {
+      if (!running) return;
+
+      elapsedTotal++;
+      elapsedSlide++;
+
+      if (elapsedSlide >= perSlideSeconds) {
+        elapsedSlide = 0;
+        if (currentSlide < Number(numSlidesInput.value)) {
+          currentSlide++;
+        }
+      }
+
+      if (elapsedTotal >= totalSeconds) {
+        running = false;
+        clearInterval(timerId);
+      }
+
+      updateDisplay();
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (!running && elapsedTotal === 0) {
+        totalSeconds = Number(totalMinutesInput.value) * 60;
+        perSlideSeconds = totalSeconds / Number(numSlidesInput.value);
+        currentSlide = 1;
+        elapsedSlide = 0;
+      }
+
+      if (!running) {
+        running = true;
+        if (!timerId) timerId = setInterval(tick, 1000);
+      }
+    });
+
+    pauseBtn.addEventListener('click', () => running = false);
+
+    resetBtn.addEventListener('click', () => {
+      running = false;
+      clearInterval(timerId);
+      timerId = null;
+      elapsedTotal = 0;
+      elapsedSlide = 0;
+      currentSlide = 1;
+      totalSeconds = 0;
+      perSlideSeconds = 0;
+      updateDisplay();
+    });
+
+    nextSlideBtn.addEventListener('click', () => {
+      const maxSlides = Number(numSlidesInput.value);
+      if (currentSlide < maxSlides) {
+        currentSlide++;
+        elapsedSlide = 0;
+        updateDisplay();
+      }
+    });
+
+    prevSlideBtn.addEventListener('click', () => {
+      if (currentSlide > 1) {
+        currentSlide--;
+        elapsedSlide = 0;
+        updateDisplay();
+      }
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>

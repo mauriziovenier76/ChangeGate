@@ -810,7 +810,9 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
   const pct   = total === 0 ? 0 : Math.round((done / total) * 100);
   const open  = isOpen;
 
-  const GRID = `28px 100px minmax(180px,1fr) 140px 90px 80px 100px 100px 90px 100px 100px 90px 100px 100px 90px 100px 100px 90px 100px 90px 100px 100px 90px 130px`;
+  const GRID = `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 120px`;
+  const P = "6px 10px";
+  const sc = (left: number, bg: string): React.CSSProperties => ({ position: "sticky", left, zIndex: 2, backgroundColor: bg, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" });
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)", minWidth: "max-content" }}>
@@ -818,80 +820,78 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f4ff")}
       >
-        <div onClick={() => onToggle()} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: "11px 0", height: "100%" }}>
+        <div onClick={() => onToggle()} style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", cursor: "pointer", padding: P, ...sc(0, "#f0f4ff") }}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
-        <div onClick={() => onToggle()} style={{ padding: "11px 10px", cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: P, cursor: "pointer", ...sc(28, "#f0f4ff") }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{project.codice}</span>
         </div>
-        <div onClick={() => onToggle()} style={{ padding: "11px 10px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{project.name}</span>
+        <div onClick={() => onToggle()} style={{ padding: P, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", ...sc(118, "#f0f4ff") }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" as const }}>{project.name}</span>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
-            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{project.client}</span>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{project.client}</span>
           </div>
           <button onClick={(e) => { e.stopPropagation(); onAddCR(project); }} title={`Nuova CR per ${project.name}`}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#0f172a", fontSize: 20, fontWeight: 300, lineHeight: 1, display: "flex", alignItems: "center", flexShrink: 0 }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#2563eb")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "#0f172a")}>+</button>
         </div>
-        <div onClick={() => onToggle()} style={{ padding: "11px 10px", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <div onClick={() => onToggle()} style={{ padding: P, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
           <div style={{ flex: 1, height: 5, backgroundColor: "#cbd5e1", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : "#3b82f6", borderRadius: 99 }} />
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        {Array(20).fill(null).map((_, i) => <div key={i} />)}
+        {Array(19).fill(null).map((_, i) => <div key={i} />)}
       </div>
 
       {open && project.crs.map((cr) => {
         const d = (v: string | null) => v ? formatDate(v) : <span style={{ color: "#cbd5e1" }}>—</span>;
         const h = (v: number | null) => v != null ? `${v}h` : <span style={{ color: "#cbd5e1" }}>—</span>;
         const t = (v: string | null) => v || <span style={{ color: "#cbd5e1" }}>—</span>;
+        const rb = "white";
         return (
           <div key={cr.id} onClick={() => onSelectCR(cr, project)}
             style={{ display: "grid", gridTemplateColumns: GRID, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[data-s]")).forEach(el => el.style.backgroundColor = "#f8fafc"); }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[data-s]")).forEach(el => el.style.backgroundColor = rb); }}
           >
-            <div />
-            <div style={{ padding: "10px 10px" }}><span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.codice}</span></div>
-            <div style={{ padding: "10px 10px", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{cr.title}</div>
-            <div style={{ padding: "10px 10px" }}>
-              <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>{cr.status}</span>
+            <div data-s style={{ padding: P, ...sc(0, rb) }} />
+            <div data-s style={{ padding: P, ...sc(28, rb) }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.codice}</span>
             </div>
-            <div style={{ padding: "10px 10px" }}>
+            <div data-s style={{ padding: P, fontSize: 13, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, ...sc(118, rb) }}>
+              {cr.title}
+            </div>
+            <div style={{ padding: P }}>
+              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, backgroundColor: statusStyle[cr.status].bg, color: statusStyle[cr.status].color, whiteSpace: "nowrap" as const }}>{cr.status}</span>
+            </div>
+            <div style={{ padding: P }}>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot }} />
+                <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: priorityStyle[cr.priority].dot, flexShrink: 0 }} />
                 <span style={{ fontSize: 12, color: priorityStyle[cr.priority].color, fontWeight: 600 }}>{cr.priority}</span>
               </div>
             </div>
-            {/* Generale */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.estimate)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.createdAt)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)", maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t(cr.noteCliente ?? null)}</div>
-            {/* TEST - Previsione */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.testPrevOre)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testPrevDa)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testPrevA)}</div>
-            {/* TEST - Effettivo */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.testEffOre)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testEffDa)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testEffA)}</div>
-            {/* TEST - Validazione */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.testValData)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{t(cr.testValUtente)}</div>
-            {/* PROD - Previsione */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.prodPrevOre)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodPrevDa)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodPrevA)}</div>
-            {/* PROD - Effettivo */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{h(cr.prodEffOre)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodEffDa)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodEffA)}</div>
-            {/* PROD - Validazione */}
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-muted)" }}>{d(cr.prodValData)}</div>
-            <div style={{ padding: "10px 10px", fontSize: 12, color: "var(--text-secondary)" }}>{t(cr.prodValUtente)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{h(cr.estimate)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.createdAt)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{t(cr.noteCliente ?? null)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{h(cr.testPrevOre)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.testPrevDa)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.testPrevA)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{h(cr.testEffOre)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.testEffDa)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.testEffA)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.testValData)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{t(cr.testValUtente)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{h(cr.prodPrevOre)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.prodPrevDa)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.prodPrevA)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{h(cr.prodEffOre)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.prodEffDa)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.prodEffA)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{d(cr.prodValData)}</div>
+            <div style={{ padding: P, fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{t(cr.prodValUtente)}</div>
           </div>
         );
       })}
@@ -1057,26 +1057,40 @@ export default function RequestsPage() {
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
           {/* Column header */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 100px minmax(180px,1fr) 140px 90px 80px 100px 100px 110px 110px 90px 100px 100px 90px 100px 100px 90px 100px 90px 100px 100px 90px 130px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", minWidth: "max-content" }}>
-            <div />
+          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", minWidth: "max-content", position: "sticky" as const, top: 0, zIndex: 10 }}>
+            <div style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11 }} />
             {[
-              "ID", "TITOLO", "STATO", "PRIORITÀ",
-              // Generale
-              "STIMA", "INS.", "NOTE CLIENTE",
-              // TEST - Previsione
-              "T.PREV.ORE", "T.PREV.DA", "T.PREV.A",
-              // TEST - Effettivo
-              "T.EFF.ORE", "T.EFF.DA", "T.EFF.A",
-              // TEST - Validazione
-              "T.VAL.DATA", "T.VAL.UTENTE",
-              // PROD - Previsione
-              "P.PREV.ORE", "P.PREV.DA", "P.PREV.A",
-              // PROD - Effettivo
-              "P.EFF.ORE", "P.EFF.DA", "P.EFF.A",
-              // PROD - Validazione
-              "P.VAL.DATA", "P.VAL.UTENTE",
+              { label: "ID",           sticky: true,  left: 28 },
+              { label: "TITOLO",       sticky: true,  left: 118 },
+              { label: "STATO",        sticky: false },
+              { label: "PRIORITÀ",     sticky: false },
+              { label: "STIMA",        sticky: false },
+              { label: "INSERITA",     sticky: false },
+              { label: "NOTE CLIENTE", sticky: false },
+              { label: "T.PREV.ORE",   sticky: false },
+              { label: "T.PREV.DA",    sticky: false },
+              { label: "T.PREV.A",     sticky: false },
+              { label: "T.EFF.ORE",    sticky: false },
+              { label: "T.EFF.DA",     sticky: false },
+              { label: "T.EFF.A",      sticky: false },
+              { label: "T.VAL.DATA",   sticky: false },
+              { label: "T.VAL.UTENTE", sticky: false },
+              { label: "P.PREV.ORE",   sticky: false },
+              { label: "P.PREV.DA",    sticky: false },
+              { label: "P.PREV.A",     sticky: false },
+              { label: "P.EFF.ORE",    sticky: false },
+              { label: "P.EFF.DA",     sticky: false },
+              { label: "P.EFF.A",      sticky: false },
+              { label: "P.VAL.DATA",   sticky: false },
+              { label: "P.VAL.UTENTE", sticky: false },
             ].map((col) => (
-              <div key={col} style={{ padding: "10px 10px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{col}</div>
+              <div key={col.label} style={{
+                padding: "8px 10px", fontSize: 10, fontWeight: 700,
+                color: "var(--text-muted)", textTransform: "uppercase" as const,
+                letterSpacing: "0.06em", whiteSpace: "nowrap" as const,
+                backgroundColor: "#f8fafc",
+                ...(col.sticky ? { position: "sticky" as const, left: col.left, zIndex: 11, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" } : {}),
+              }}>{col.label}</div>
             ))}
           </div>
           {filtered.map((project) => (
