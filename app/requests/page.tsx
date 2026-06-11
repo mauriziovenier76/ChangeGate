@@ -812,7 +812,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
 
   const GRID = `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`;
   const P = "6px 10px";
-  const sc = (left: number, bg: string): React.CSSProperties => ({ position: "sticky", left, zIndex: 2, backgroundColor: bg, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" });
+  const sc = (left: number, bg: string): React.CSSProperties => ({ position: "sticky", left, zIndex: 2, backgroundColor: bg, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)", borderRight: "1px solid #f0f8ff" });
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)", minWidth: "max-content" }}>
@@ -851,7 +851,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
         const h = (v: number | null) => v != null ? `${v}h` : <span style={{ color: "#cbd5e1" }}>—</span>;
         const t = (v: string | null) => v || <span style={{ color: "#cbd5e1" }}>—</span>;
         const rb = "white";
-        const cell = (extra?: React.CSSProperties): React.CSSProperties => ({ padding: P, display: "flex", alignItems: "center", fontSize: 12, whiteSpace: "nowrap" as const, ...extra });
+        const cell = (extra?: React.CSSProperties): React.CSSProperties => ({ padding: P, display: "flex", alignItems: "center", fontSize: 12, whiteSpace: "nowrap" as const, borderRight: "1px solid #f0f8ff", ...extra });
         return (
           <div key={cr.id} onClick={() => onSelectCR(cr, project)}
             style={{ display: "grid", gridTemplateColumns: GRID, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s", height: 36 }}
@@ -1091,6 +1091,7 @@ export default function RequestsPage() {
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.06em", whiteSpace: "nowrap" as const,
                 backgroundColor: col.test ? "#d8bfd8" : "#f8fafc",
+                borderRight: "1px solid #f0f8ff",
                 ...(col.sticky ? { position: "sticky" as const, left: (col as {left?: number}).left, zIndex: 11, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" } : {}),
               }}>{col.label}</div>
             ))}
