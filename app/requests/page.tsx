@@ -877,14 +877,14 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
             <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.estimate)}</div>
             <div style={cell({ color: "var(--text-muted)" })}>{d(cr.createdAt)}</div>
             <div style={cell({ color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis" })}>{t(cr.noteCliente ?? null)}</div>
-            <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.testPrevOre)}</div>
-            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.testPrevDa)}</div>
-            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.testPrevA)}</div>
-            <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.testEffOre)}</div>
-            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.testEffDa)}</div>
-            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.testEffA)}</div>
-            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.testValData)}</div>
-            <div style={cell({ color: "var(--text-secondary)" })}>{t(cr.testValUtente)}</div>
+            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{h(cr.testPrevOre)}</div>
+            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testPrevDa)}</div>
+            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testPrevA)}</div>
+            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{h(cr.testEffOre)}</div>
+            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testEffDa)}</div>
+            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testEffA)}</div>
+            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testValData)}</div>
+            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{t(cr.testValUtente)}</div>
             <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.prodPrevOre)}</div>
             <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodPrevDa)}</div>
             <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodPrevA)}</div>
@@ -1061,36 +1061,37 @@ export default function RequestsPage() {
           <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11 }} />
             {[
-              { label: "ID",           sticky: true,  left: 28 },
-              { label: "TITOLO",       sticky: true,  left: 118 },
-              { label: "STATO",        sticky: false },
-              { label: "PRIORITÀ",     sticky: false },
-              { label: "STIMA",        sticky: false },
-              { label: "INSERITA",     sticky: false },
-              { label: "NOTE CLIENTE", sticky: false },
-              { label: "T.PREV.ORE",   sticky: false },
-              { label: "T.PREV.DA",    sticky: false },
-              { label: "T.PREV.A",     sticky: false },
-              { label: "T.EFF.ORE",    sticky: false },
-              { label: "T.EFF.DA",     sticky: false },
-              { label: "T.EFF.A",      sticky: false },
-              { label: "T.VAL.DATA",   sticky: false },
-              { label: "T.VAL.UTENTE", sticky: false },
-              { label: "P.PREV.ORE",   sticky: false },
-              { label: "P.PREV.DA",    sticky: false },
-              { label: "P.PREV.A",     sticky: false },
-              { label: "P.EFF.ORE",    sticky: false },
-              { label: "P.EFF.DA",     sticky: false },
-              { label: "P.EFF.A",      sticky: false },
-              { label: "P.VAL.DATA",   sticky: false },
-              { label: "P.VAL.UTENTE", sticky: false },
+              { label: "ID",           sticky: true,  left: 28,  test: false },
+              { label: "TITOLO",       sticky: true,  left: 118, test: false },
+              { label: "STATO",        sticky: false, test: false },
+              { label: "PRIORITÀ",     sticky: false, test: false },
+              { label: "STIMA",        sticky: false, test: false },
+              { label: "INSERITA",     sticky: false, test: false },
+              { label: "NOTE CLIENTE", sticky: false, test: false },
+              { label: "T.PREV.ORE",   sticky: false, test: true },
+              { label: "T.PREV.DA",    sticky: false, test: true },
+              { label: "T.PREV.A",     sticky: false, test: true },
+              { label: "T.EFF.ORE",    sticky: false, test: true },
+              { label: "T.EFF.DA",     sticky: false, test: true },
+              { label: "T.EFF.A",      sticky: false, test: true },
+              { label: "T.VAL.DATA",   sticky: false, test: true },
+              { label: "T.VAL.UTENTE", sticky: false, test: true },
+              { label: "P.PREV.ORE",   sticky: false, test: false },
+              { label: "P.PREV.DA",    sticky: false, test: false },
+              { label: "P.PREV.A",     sticky: false, test: false },
+              { label: "P.EFF.ORE",    sticky: false, test: false },
+              { label: "P.EFF.DA",     sticky: false, test: false },
+              { label: "P.EFF.A",      sticky: false, test: false },
+              { label: "P.VAL.DATA",   sticky: false, test: false },
+              { label: "P.VAL.UTENTE", sticky: false, test: false },
             ].map((col) => (
               <div key={col.label} style={{
                 padding: "8px 10px", fontSize: 10, fontWeight: 700,
-                color: "var(--text-muted)", textTransform: "uppercase" as const,
+                color: col.test ? "#6b21a8" : "var(--text-muted)",
+                textTransform: "uppercase" as const,
                 letterSpacing: "0.06em", whiteSpace: "nowrap" as const,
-                backgroundColor: "#f8fafc",
-                ...(col.sticky ? { position: "sticky" as const, left: col.left, zIndex: 11, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" } : {}),
+                backgroundColor: col.test ? "#d8bfd8" : "#f8fafc",
+                ...(col.sticky ? { position: "sticky" as const, left: (col as {left?: number}).left, zIndex: 11, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" } : {}),
               }}>{col.label}</div>
             ))}
           </div>
