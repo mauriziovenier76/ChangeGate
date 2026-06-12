@@ -927,6 +927,14 @@ export default function RequestsPage() {
     });
   };
 
+  const toggleAllProjects = () => {
+    setOpenProjects((prev) =>
+      prev.size === filtered.length
+        ? new Set()
+        : new Set(filtered.map((p) => p.id))
+    );
+  };
+
   const loadData = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -1059,7 +1067,17 @@ export default function RequestsPage() {
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
           {/* Column header */}
           <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            <div style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11 }} />
+            <div
+              onClick={toggleAllProjects}
+              title={openProjects.size === filtered.length ? "Collassa tutti" : "Espandi tutti"}
+              style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRight: "1px solid #f0f8ff" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+            >
+              {openProjects.size === filtered.length
+                ? <ChevronDown size={14} style={{ color: "#2563eb" }} />
+                : <ChevronRight size={14} style={{ color: "#2563eb" }} />}
+            </div>
             {[
               { label: "ID",           sticky: true,  left: 28,  test: false },
               { label: "TITOLO",       sticky: true,  left: 118, test: false },
