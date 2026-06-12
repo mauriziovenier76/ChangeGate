@@ -1065,25 +1065,25 @@ export default function RequestsPage() {
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun risultato trovato</div>
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
-          {/* Super-header row */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 810px 810px 120px`, borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            {/* Sticky: chevron + ID + Titolo */}
-            <div style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 28, backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11, borderRight: "1px solid #f0f8ff" }} />
-            {/* General cols — empty */}
+          {/* Super-header row — same grid, span per i gruppi */}
+          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
+            {/* Sticky: chevron + ID + Titolo — vuote */}
+            <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
+            <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
+            <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
+            {/* Stato, Priorità, Stima, Inserita — vuote */}
             <div /><div /><div /><div />
-            {/* Note cliente — empty */}
+            {/* NOTE CLIENTE — vuota, con bordo destro per separare */}
             <div style={{ borderRight: "1px solid #e2e8f0" }} />
-            {/* AMBIENTE TEST label — spans 9 cols = 120+90+90+90+90+90+90+90+120 = 810px */}
-            <div style={{ padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center", gap: 6 }}>
+            {/* AMBIENTE DI TEST — span 8 colonne */}
+            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>
               Ambiente di Test
             </div>
-            {/* AMBIENTE PROD label — spans 9 cols = same */}
-            <div style={{ padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center", gap: 6 }}>
+            {/* AMBIENTE DI PRODUZIONE — span 8 colonne */}
+            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>
               Ambiente di Produzione
             </div>
-            {/* Last col spacer */}
+            {/* Ultima colonna vuota */}
             <div />
           </div>
 
