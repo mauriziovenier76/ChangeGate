@@ -885,14 +885,14 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testEffA)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testValData)}</div>
             <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{t(cr.testValUtente)}</div>
-            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#dbeafe" })}>{h(cr.prodPrevOre)}</div>
-            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodPrevDa)}</div>
-            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodPrevA)}</div>
-            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#dbeafe" })}>{h(cr.prodEffOre)}</div>
-            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodEffDa)}</div>
-            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodEffA)}</div>
-            <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodValData)}</div>
-            <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#dbeafe" })}>{t(cr.prodValUtente)}</div>
+            <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.prodPrevOre)}</div>
+            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodPrevDa)}</div>
+            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodPrevA)}</div>
+            <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.prodEffOre)}</div>
+            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodEffDa)}</div>
+            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodEffA)}</div>
+            <div style={cell({ color: "var(--text-muted)" })}>{d(cr.prodValData)}</div>
+            <div style={cell({ color: "var(--text-secondary)" })}>{t(cr.prodValUtente)}</div>
           </div>
         );
       })}
@@ -925,14 +925,6 @@ export default function RequestsPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
-
-  const toggleAllProjects = () => {
-    setOpenProjects((prev) =>
-      prev.size === filtered.length
-        ? new Set()
-        : new Set(filtered.map((p) => p.id))
-    );
   };
 
   const loadData = async () => {
@@ -1065,72 +1057,40 @@ export default function RequestsPage() {
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun risultato trovato</div>
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
-          {/* Super-header row — same grid, span per i gruppi */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            {/* Sticky: chevron + ID + Titolo — vuote */}
-            <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
-            {/* Stato, Priorità, Stima, Inserita — vuote */}
-            <div /><div /><div /><div />
-            {/* NOTE CLIENTE — vuota, con bordo destro per separare */}
-            <div style={{ borderRight: "1px solid #e2e8f0" }} />
-            {/* AMBIENTE DI TEST — span 8 colonne */}
-            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>
-              Ambiente di Test
-            </div>
-            {/* AMBIENTE DI PRODUZIONE — span 8 colonne */}
-            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>
-              Ambiente di Produzione
-            </div>
-            {/* Ultima colonna vuota */}
-            <div />
-          </div>
-
           {/* Column header */}
           <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            <div
-              onClick={toggleAllProjects}
-              title={openProjects.size === filtered.length ? "Collassa tutti" : "Espandi tutti"}
-              style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRight: "1px solid #f0f8ff" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e8effe")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-            >
-              {openProjects.size === filtered.length
-                ? <ChevronDown size={14} style={{ color: "#2563eb" }} />
-                : <ChevronRight size={14} style={{ color: "#2563eb" }} />}
-            </div>
+            <div style={{ position: "sticky" as const, left: 0, backgroundColor: "#f8fafc", zIndex: 11 }} />
             {[
-              { label: "ID",           sticky: true,  left: 28,  test: false, prod: false },
-              { label: "TITOLO",       sticky: true,  left: 118, test: false, prod: false },
-              { label: "STATO",        sticky: false, test: false, prod: false },
-              { label: "PRIORITÀ",     sticky: false, test: false, prod: false },
-              { label: "STIMA",        sticky: false, test: false, prod: false },
-              { label: "INSERITA",     sticky: false, test: false, prod: false },
-              { label: "NOTE CLIENTE", sticky: false, test: false, prod: false },
-              { label: "T.PREV.ORE",   sticky: false, test: true,  prod: false },
-              { label: "T.PREV.DA",    sticky: false, test: true,  prod: false },
-              { label: "T.PREV.A",     sticky: false, test: true,  prod: false },
-              { label: "T.EFF.ORE",    sticky: false, test: true,  prod: false },
-              { label: "T.EFF.DA",     sticky: false, test: true,  prod: false },
-              { label: "T.EFF.A",      sticky: false, test: true,  prod: false },
-              { label: "T.VAL.DATA",   sticky: false, test: true,  prod: false },
-              { label: "T.VAL.UTENTE", sticky: false, test: true,  prod: false },
-              { label: "P.PREV.ORE",   sticky: false, test: false, prod: true  },
-              { label: "P.PREV.DA",    sticky: false, test: false, prod: true  },
-              { label: "P.PREV.A",     sticky: false, test: false, prod: true  },
-              { label: "P.EFF.ORE",    sticky: false, test: false, prod: true  },
-              { label: "P.EFF.DA",     sticky: false, test: false, prod: true  },
-              { label: "P.EFF.A",      sticky: false, test: false, prod: true  },
-              { label: "P.VAL.DATA",   sticky: false, test: false, prod: true  },
-              { label: "P.VAL.UTENTE", sticky: false, test: false, prod: true  },
+              { label: "ID",           sticky: true,  left: 28,  test: false },
+              { label: "TITOLO",       sticky: true,  left: 118, test: false },
+              { label: "STATO",        sticky: false, test: false },
+              { label: "PRIORITÀ",     sticky: false, test: false },
+              { label: "STIMA",        sticky: false, test: false },
+              { label: "INSERITA",     sticky: false, test: false },
+              { label: "NOTE CLIENTE", sticky: false, test: false },
+              { label: "T.PREV.ORE",   sticky: false, test: true },
+              { label: "T.PREV.DA",    sticky: false, test: true },
+              { label: "T.PREV.A",     sticky: false, test: true },
+              { label: "T.EFF.ORE",    sticky: false, test: true },
+              { label: "T.EFF.DA",     sticky: false, test: true },
+              { label: "T.EFF.A",      sticky: false, test: true },
+              { label: "T.VAL.DATA",   sticky: false, test: true },
+              { label: "T.VAL.UTENTE", sticky: false, test: true },
+              { label: "P.PREV.ORE",   sticky: false, test: false },
+              { label: "P.PREV.DA",    sticky: false, test: false },
+              { label: "P.PREV.A",     sticky: false, test: false },
+              { label: "P.EFF.ORE",    sticky: false, test: false },
+              { label: "P.EFF.DA",     sticky: false, test: false },
+              { label: "P.EFF.A",      sticky: false, test: false },
+              { label: "P.VAL.DATA",   sticky: false, test: false },
+              { label: "P.VAL.UTENTE", sticky: false, test: false },
             ].map((col) => (
               <div key={col.label} style={{
                 padding: "8px 10px", fontSize: 10, fontWeight: 700,
-                color: col.test ? "#6b21a8" : col.prod ? "#1e40af" : "var(--text-muted)",
+                color: col.test ? "#6b21a8" : "var(--text-muted)",
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.06em", whiteSpace: "nowrap" as const,
-                backgroundColor: col.test ? "#d8bfd8" : col.prod ? "#dbeafe" : "#f8fafc",
+                backgroundColor: col.test ? "#d8bfd8" : "#f8fafc",
                 borderRight: "1px solid #f0f8ff",
                 ...(col.sticky ? { position: "sticky" as const, left: (col as {left?: number}).left, zIndex: 11, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)" } : {}),
               }}>{col.label}</div>
