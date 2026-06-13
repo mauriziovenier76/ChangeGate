@@ -1101,18 +1101,18 @@ export default function RequestsPage() {
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun risultato trovato</div>
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
-          {/* Super-header row — same grid, span per i gruppi */}
-          <div style={{ display: "grid", gridTemplateColumns: buildGrid(showTest, showProd), borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
-            <div /><div /><div /><div />
-            <div style={{ borderRight: "1px solid #e2e8f0" }} />
-            {showTest && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>Ambiente di Test</div>}
-            {showProd && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>Ambiente di Produzione</div>}
-          </div>
-
-          {/* Column header */}
+          {/* Super-header row — only when at least one env visible */}
+          {(showTest || showProd) && (
+            <div style={{ display: "grid", gridTemplateColumns: buildGrid(showTest, showProd), borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
+              <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
+              <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
+              <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
+              <div /><div /><div /><div />
+              <div style={{ borderRight: "1px solid #e2e8f0" }} />
+              {showTest && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>Ambiente di Test</div>}
+              {showProd && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>Ambiente di Produzione</div>}
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: buildGrid(showTest, showProd), borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div
               onClick={toggleAllProjects}
