@@ -852,7 +852,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, show
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        {Array((showTest ? 8 : 0) + (showProd ? 8 : 0) - 1).fill(null).map((_, i) => <div key={i} />)}
+        {Array(Math.max(0, (showTest ? 8 : 0) + (showProd ? 8 : 0) - 1)).fill(null).map((_, i) => <div key={i} />)}
       </div>
 
       {open && project.crs.map((cr) => {
@@ -1097,6 +1097,10 @@ export default function RequestsPage() {
       {/* Table */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Caricamento...</div>
+      ) : !showTest && !showProd ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>
+          Seleziona almeno un ambiente dal filtro per visualizzare la tabella.
+        </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun risultato trovato</div>
       ) : (
