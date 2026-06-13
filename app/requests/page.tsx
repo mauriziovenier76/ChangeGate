@@ -801,16 +801,21 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
 
 // ─── Project accordion ────────────────────────────────────────────────────────
 
-function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
+function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, showTest, showProd }: {
   project: Project; isOpen: boolean; onToggle: () => void;
   onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void;
+  showTest: boolean; showProd: boolean;
 }) {
   const total = project.crs.length;
   const done  = project.crs.filter((c) => c.status === "Completata").length;
   const pct   = total === 0 ? 0 : Math.round((done / total) * 100);
   const open  = isOpen;
 
-  const GRID = `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`;
+  // Base cols: chevron + ID + Titolo + Stato + Priorità + Stima + Inserita + NoteCliente
+  const baseCols = `28px 90px 260px 140px 80px 70px 90px 120px`;
+  const testCols = `90px 90px 90px 90px 90px 90px 90px 120px`;
+  const prodCols = `90px 90px 90px 90px 90px 90px 90px 120px`;
+  const GRID = [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" ");
   const P = "6px 10px";
   const sc = (left: number, bg: string): React.CSSProperties => ({ position: "sticky", left, zIndex: 2, backgroundColor: bg, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)", borderRight: "1px solid #f0f8ff" });
 
@@ -843,7 +848,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
           </div>
           <span style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>{done}/{total} CR</span>
         </div>
-        {Array(19).fill(null).map((_, i) => <div key={i} />)}
+        {Array((showTest ? 8 : 0) + (showProd ? 8 : 0) - 1).fill(null).map((_, i) => <div key={i} />)}
       </div>
 
       {open && project.crs.map((cr) => {
@@ -877,6 +882,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
             <div style={cell({ color: "var(--text-secondary)" })}>{h(cr.estimate)}</div>
             <div style={cell({ color: "var(--text-muted)" })}>{d(cr.createdAt)}</div>
             <div style={cell({ color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis" })}>{t(cr.noteCliente ?? null)}</div>
+            {showTest && <>
             <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{h(cr.testPrevOre)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testPrevDa)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testPrevA)}</div>
@@ -885,6 +891,8 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testEffA)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#d8bfd8" })}>{d(cr.testValData)}</div>
             <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#d8bfd8" })}>{t(cr.testValUtente)}</div>
+            </>}
+            {showProd && <>
             <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#dbeafe" })}>{h(cr.prodPrevOre)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodPrevDa)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodPrevA)}</div>
@@ -893,6 +901,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR }: {
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodEffA)}</div>
             <div style={cell({ color: "var(--text-muted)", backgroundColor: "#dbeafe" })}>{d(cr.prodValData)}</div>
             <div style={cell({ color: "var(--text-secondary)", backgroundColor: "#dbeafe" })}>{t(cr.prodValUtente)}</div>
+            </>}
           </div>
         );
       })}
@@ -911,6 +920,8 @@ export default function RequestsPage() {
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
   const [showNewCR, setShowNewCR]   = useState(false);
   const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
+  const [showTest, setShowTest] = useState(true);
+  const [showProd, setShowProd] = useState(true);
 
   const openNewCR = (project?: Project) => {
     setPreSelected(project ? { clienteId: project.clientId, progettoId: project.id } : null);
@@ -1056,6 +1067,27 @@ export default function RequestsPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <CheckboxDropdown label="Clienti" options={allClients} selected={clientFilter} onChange={setClientFilter} />
         <CheckboxDropdown label="Stato" options={allStatuses} selected={statusFilter} onChange={setStatusFilter} />
+        {/* Ambiente filter */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 8, border: "1.5px solid var(--border)", backgroundColor: "white", fontSize: 13 }}>
+          <span style={{ fontWeight: 500, color: "var(--text-secondary)", marginRight: 4 }}>Ambiente:</span>
+          {[
+            { label: "Test", value: showTest, set: setShowTest, bg: "#d8bfd8", color: "#6b21a8" },
+            { label: "Prod", value: showProd, set: setShowProd, bg: "#dbeafe", color: "#1e40af" },
+          ].map((env) => (
+            <button key={env.label} onClick={() => env.set(!env.value)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 20,
+                border: `1.5px solid ${env.value ? env.color : "#cbd5e1"}`,
+                backgroundColor: env.value ? env.bg : "white",
+                cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600,
+                color: env.value ? env.color : "#94a3b8", transition: "all 0.15s",
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: env.value ? env.color : "#cbd5e1", flexShrink: 0 }} />
+              {env.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -1066,29 +1098,18 @@ export default function RequestsPage() {
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
           {/* Super-header row — same grid, span per i gruppi */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
-            {/* Sticky: chevron + ID + Titolo — vuote */}
+          <div style={{ display: "grid", gridTemplateColumns: [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" "), borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
             <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
             <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
-            {/* Stato, Priorità, Stima, Inserita — vuote */}
             <div /><div /><div /><div />
-            {/* NOTE CLIENTE — vuota, con bordo destro per separare */}
             <div style={{ borderRight: "1px solid #e2e8f0" }} />
-            {/* AMBIENTE DI TEST — span 8 colonne */}
-            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>
-              Ambiente di Test
-            </div>
-            {/* AMBIENTE DI PRODUZIONE — span 8 colonne */}
-            <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>
-              Ambiente di Produzione
-            </div>
-            {/* Ultima colonna vuota */}
-            <div />
+            {showTest && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#6b21a8", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#d8bfd8", borderRight: "1px solid #c4a8c4", display: "flex", alignItems: "center" }}>Ambiente di Test</div>}
+            {showProd && <div style={{ gridColumn: "span 8", padding: "5px 12px", fontSize: 10, fontWeight: 800, color: "#1e40af", textTransform: "uppercase" as const, letterSpacing: "0.08em", backgroundColor: "#dbeafe", borderRight: "1px solid #bfdbfe", display: "flex", alignItems: "center" }}>Ambiente di Produzione</div>}
           </div>
 
           {/* Column header */}
-          <div style={{ display: "grid", gridTemplateColumns: `28px 90px 260px 140px 80px 70px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px 90px 90px 90px 90px 90px 90px 90px 120px`, borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
+          <div style={{ display: "grid", gridTemplateColumns: [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" "), borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div
               onClick={toggleAllProjects}
               title={openProjects.size === filtered.length ? "Collassa tutti" : "Espandi tutti"}
@@ -1108,22 +1129,26 @@ export default function RequestsPage() {
               { label: "STIMA",        sticky: false, test: false, prod: false },
               { label: "INSERITA",     sticky: false, test: false, prod: false },
               { label: "NOTE CLIENTE", sticky: false, test: false, prod: false },
-              { label: "T.PREV.ORE",   sticky: false, test: true,  prod: false },
-              { label: "T.PREV.DA",    sticky: false, test: true,  prod: false },
-              { label: "T.PREV.A",     sticky: false, test: true,  prod: false },
-              { label: "T.EFF.ORE",    sticky: false, test: true,  prod: false },
-              { label: "T.EFF.DA",     sticky: false, test: true,  prod: false },
-              { label: "T.EFF.A",      sticky: false, test: true,  prod: false },
-              { label: "T.VAL.DATA",   sticky: false, test: true,  prod: false },
-              { label: "T.VAL.UTENTE", sticky: false, test: true,  prod: false },
-              { label: "P.PREV.ORE",   sticky: false, test: false, prod: true  },
-              { label: "P.PREV.DA",    sticky: false, test: false, prod: true  },
-              { label: "P.PREV.A",     sticky: false, test: false, prod: true  },
-              { label: "P.EFF.ORE",    sticky: false, test: false, prod: true  },
-              { label: "P.EFF.DA",     sticky: false, test: false, prod: true  },
-              { label: "P.EFF.A",      sticky: false, test: false, prod: true  },
-              { label: "P.VAL.DATA",   sticky: false, test: false, prod: true  },
-              { label: "P.VAL.UTENTE", sticky: false, test: false, prod: true  },
+              ...(showTest ? [
+                { label: "T.PREV.ORE",   sticky: false, test: true,  prod: false },
+                { label: "T.PREV.DA",    sticky: false, test: true,  prod: false },
+                { label: "T.PREV.A",     sticky: false, test: true,  prod: false },
+                { label: "T.EFF.ORE",    sticky: false, test: true,  prod: false },
+                { label: "T.EFF.DA",     sticky: false, test: true,  prod: false },
+                { label: "T.EFF.A",      sticky: false, test: true,  prod: false },
+                { label: "T.VAL.DATA",   sticky: false, test: true,  prod: false },
+                { label: "T.VAL.UTENTE", sticky: false, test: true,  prod: false },
+              ] : []),
+              ...(showProd ? [
+                { label: "P.PREV.ORE",   sticky: false, test: false, prod: true  },
+                { label: "P.PREV.DA",    sticky: false, test: false, prod: true  },
+                { label: "P.PREV.A",     sticky: false, test: false, prod: true  },
+                { label: "P.EFF.ORE",    sticky: false, test: false, prod: true  },
+                { label: "P.EFF.DA",     sticky: false, test: false, prod: true  },
+                { label: "P.EFF.A",      sticky: false, test: false, prod: true  },
+                { label: "P.VAL.DATA",   sticky: false, test: false, prod: true  },
+                { label: "P.VAL.UTENTE", sticky: false, test: false, prod: true  },
+              ] : []),
             ].map((col) => (
               <div key={col.label} style={{
                 padding: "8px 10px", fontSize: 10, fontWeight: 700,
@@ -1137,7 +1162,7 @@ export default function RequestsPage() {
             ))}
           </div>
           {filtered.map((project) => (
-            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} />
+            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} showTest={showTest} showProd={showProd} />
           ))}
         </div>
       )}
