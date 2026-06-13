@@ -809,10 +809,11 @@ const buildGrid = (showTest: boolean, showProd: boolean) =>
 
 // ─── Project accordion ────────────────────────────────────────────────────────
 
-function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, showTest, showProd }: {
+function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, showTest, showProd, selectedCRIds, onToggleCR }: {
   project: Project; isOpen: boolean; onToggle: () => void;
   onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void;
   showTest: boolean; showProd: boolean;
+  selectedCRIds: Set<string>; onToggleCR: (id: string) => void;
 }) {
   const total = project.crs.length;
   const done  = project.crs.filter((c) => c.status === "Completata").length;
@@ -862,16 +863,32 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, show
         const rb = "white";
         const cell = (extra?: React.CSSProperties): React.CSSProperties => ({ padding: P, display: "flex", alignItems: "center", fontSize: 12, whiteSpace: "nowrap" as const, borderRight: "1px solid #f0f8ff", ...extra });
         return (
-          <div key={cr.id} onClick={() => onSelectCR(cr, project)}
+          <div key={cr.id}
             style={{ display: "grid", gridTemplateColumns: GRID, alignItems: "center", borderTop: "1px solid var(--border-soft)", cursor: "pointer", transition: "background 0.1s", height: 36 }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#f8fafc"; Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[data-s]")).forEach(el => el.style.backgroundColor = "#f8fafc"); }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; Array.from(e.currentTarget.querySelectorAll<HTMLElement>("[data-s]")).forEach(el => el.style.backgroundColor = rb); }}
           >
-            <div data-s style={{ ...cell(), ...sc(0, rb) }} />
-            <div data-s style={{ ...cell(), ...sc(28, rb) }}>
+            {/* Checkbox — first sticky cell */}
+            <div data-s onClick={(e) => { e.stopPropagation(); onToggleCR(cr.id); }}
+              style={{ ...cell(), ...sc(0, rb), justifyContent: "center", cursor: "pointer" }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                border: selectedCRIds.has(cr.id) ? "none" : "1.5px solid #cbd5e1",
+                backgroundColor: selectedCRIds.has(cr.id) ? "#2563eb" : "white",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.1s",
+              }}>
+                {selectedCRIds.has(cr.id) && (
+                  <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                    <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+            <div data-s onClick={() => onSelectCR(cr, project)} style={{ ...cell(), ...sc(28, rb) }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: "#2563eb", fontFamily: "DM Mono, monospace" }}>{cr.codice}</span>
             </div>
-            <div data-s style={{ ...cell({ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }), ...sc(118, rb) }}>
+            <div data-s onClick={() => onSelectCR(cr, project)} style={{ ...cell({ fontSize: 13, color: "var(--text-primary)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }), ...sc(118, rb) }}>
               {cr.title}
             </div>
             <div style={cell()}>
@@ -926,6 +943,15 @@ export default function RequestsPage() {
   const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
   const [showTest, setShowTest] = useState(true);
   const [showProd, setShowProd] = useState(true);
+  const [selectedCRIds, setSelectedCRIds] = useState<Set<string>>(new Set());
+
+  const toggleCRSelection = (id: string) => {
+    setSelectedCRIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const openNewCR = (project?: Project) => {
     setPreSelected(project ? { clienteId: project.clientId, progettoId: project.id } : null);
@@ -1170,7 +1196,7 @@ export default function RequestsPage() {
             ))}
           </div>
           {filtered.map((project) => (
-            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} showTest={showTest} showProd={showProd} />
+            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} showTest={showTest} showProd={showProd} selectedCRIds={selectedCRIds} onToggleCR={toggleCRSelection} />
           ))}
         </div>
       )}
