@@ -799,6 +799,14 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
   );
 }
 
+// ─── Grid column constants ────────────────────────────────────────────────────
+
+const BASE_COLS = `28px 90px 260px 140px 80px 70px 90px 120px`;
+const TEST_COLS = `90px 90px 90px 90px 90px 90px 90px 120px`;
+const PROD_COLS = `90px 90px 90px 90px 90px 90px 90px 120px`;
+const buildGrid = (showTest: boolean, showProd: boolean) =>
+  [BASE_COLS, showTest ? TEST_COLS : "", showProd ? PROD_COLS : ""].filter(Boolean).join(" ");
+
 // ─── Project accordion ────────────────────────────────────────────────────────
 
 function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, showTest, showProd }: {
@@ -811,11 +819,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, show
   const pct   = total === 0 ? 0 : Math.round((done / total) * 100);
   const open  = isOpen;
 
-  // Base cols: chevron + ID + Titolo + Stato + Priorità + Stima + Inserita + NoteCliente
-  const baseCols = `28px 90px 260px 140px 80px 70px 90px 120px`;
-  const testCols = `90px 90px 90px 90px 90px 90px 90px 120px`;
-  const prodCols = `90px 90px 90px 90px 90px 90px 90px 120px`;
-  const GRID = [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" ");
+  const GRID = buildGrid(showTest, showProd);
   const P = "6px 10px";
   const sc = (left: number, bg: string): React.CSSProperties => ({ position: "sticky", left, zIndex: 2, backgroundColor: bg, boxShadow: "2px 0 4px -1px rgba(0,0,0,0.06)", borderRight: "1px solid #f0f8ff" });
 
@@ -1098,7 +1102,7 @@ export default function RequestsPage() {
       ) : (
         <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto" }}>
           {/* Super-header row — same grid, span per i gruppi */}
-          <div style={{ display: "grid", gridTemplateColumns: [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" "), borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
+          <div style={{ display: "grid", gridTemplateColumns: buildGrid(showTest, showProd), borderBottom: "1px solid var(--border-soft)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div style={{ position: "sticky" as const, left: 0,   backgroundColor: "#f8fafc", zIndex: 11 }} />
             <div style={{ position: "sticky" as const, left: 28,  backgroundColor: "#f8fafc", zIndex: 11 }} />
             <div style={{ position: "sticky" as const, left: 118, backgroundColor: "#f8fafc", zIndex: 11 }} />
@@ -1109,7 +1113,7 @@ export default function RequestsPage() {
           </div>
 
           {/* Column header */}
-          <div style={{ display: "grid", gridTemplateColumns: [baseCols, showTest ? testCols : "", showProd ? prodCols : ""].filter(Boolean).join(" "), borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
+          <div style={{ display: "grid", gridTemplateColumns: buildGrid(showTest, showProd), borderBottom: "1px solid var(--border)", backgroundColor: "#f8fafc", width: "max-content", minWidth: "100%" }}>
             <div
               onClick={toggleAllProjects}
               title={openProjects.size === filtered.length ? "Collassa tutti" : "Espandi tutti"}
