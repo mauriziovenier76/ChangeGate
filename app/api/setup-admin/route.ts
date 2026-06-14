@@ -12,13 +12,30 @@ export async function POST(req: Request) {
 
   const supabaseAdmin = createClient(url, key);
 
-  // Crea utente in auth.users
+  // Prova a creare l'utente; se esiste già recupera l'ID
+  let authUserId: string | null = null;
+
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email, password, email_confirm: true,
   });
+
   if (error) {
-    console.log("Auth error full:", JSON.stringify(error));
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error.message.includes("already") || error.status === 500) {
+      // Cerca l'utente esistente
+      const { data: list } = await supabaseAdmin.auth.admin.listUsers();
+      const existing = list?.users?.find((u) => u.email === email);
+      if (!existing) {
+        console.log("Auth error full:", JSON.stringify(error));
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      authUserId = existing.id;
+      // Aggiorna la password
+      await supabaseAdmin.auth.admin.updateUserById(authUserId, { password });
+    } else {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+  } else {
+    authUserId = data.user.id;
   }
 
   // Crea record in cg_utenti
@@ -26,7 +43,7 @@ export async function POST(req: Request) {
     nome, email, ruolo: "admin", attivo: true,
     avatar_iniziali: nome.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase(),
     avatar_bg: "#2563eb", avatar_colore: "#ffffff",
-    auth_user_id: data.user.id,
+    auth_user_id: authUserId,
   });
 
   return NextResponse.json({ success: true });
