@@ -1,6 +1,3 @@
-console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30));
-console.log("KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20));
-
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
@@ -8,10 +5,12 @@ export async function POST(req: Request) {
   const { email, password, nome } = await req.json();
   if (!email || !password || !nome) return NextResponse.json({ error: "Tutti i campi sono obbligatori" }, { status: 400 });
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  console.log("URL:", url?.slice(0, 50));
+  console.log("KEY:", key?.slice(0, 20));
+
+  const supabaseAdmin = createClient(url, key);
 
   // Crea utente in auth.users
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
