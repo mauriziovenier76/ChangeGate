@@ -21,6 +21,7 @@ type Utente = {
   avatar_iniziali: string;
   avatar_bg: string;
   avatar_colore: string;
+  auth_user_id: string | null;
 };
 
 type OptionRow = { id: string; nome: string };
@@ -301,7 +302,22 @@ export default function UtentiPage() {
   const [filterRuolo, setFilterRuolo]   = useState<Ruolo | "tutti">("tutti");
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
-  const loadData = async () => {
+  const [inviting, setInviting] = useState<string | null>(null);
+
+  const handleInvite = async (u: Utente) => {
+    if (!u.email) { alert("Questo utente non ha un'email associata."); return; }
+    setInviting(u.id);
+    const res = await fetch("/api/invite-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: u.email, nome: u.nome, utente_id: u.id }),
+    });
+    const json = await res.json();
+    setInviting(null);
+    if (json.error) { alert(`Errore: ${json.error}`); return; }
+    alert(`Invito inviato a ${u.email}`);
+    loadData();
+  };
     setLoading(true);
     const { data, error } = await supabase
       .from("cg_utenti")
@@ -312,6 +328,7 @@ export default function UtentiPage() {
       ...u,
       fornitore_nome: (u.cg_fornitori as unknown as { nome: string } | null)?.nome ?? null,
       cliente_nome:   (u.cg_clienti   as unknown as { nome: string } | null)?.nome ?? null,
+      auth_user_id:   u.auth_user_id ?? null,
     })));
     setLoading(false);
   };
@@ -434,7 +451,18 @@ export default function UtentiPage() {
                   </td>
                   {/* Azioni */}
                   <td style={{ padding: "12px 18px", textAlign: "right" }}>
-                    <button onClick={() => setEditing(u)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
+                    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
+                      {!u.auth_user_id && u.email && (
+                        <button onClick={() => handleInvite(u)} disabled={inviting === u.id}
+                          style={{ fontSize: 12, color: "#059669", background: "none", border: "1px solid #059669", borderRadius: 6, cursor: inviting === u.id ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, padding: "3px 10px", opacity: inviting === u.id ? 0.6 : 1 }}>
+                          {inviting === u.id ? "Invio..." : "✉ Invita"}
+                        </button>
+                      )}
+                      {u.auth_user_id && (
+                        <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Attivo</span>
+                      )}
+                      <button onClick={() => setEditing(u)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
+                    </div>
                   </td>
                 </tr>
               ))}
