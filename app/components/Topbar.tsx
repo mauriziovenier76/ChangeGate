@@ -60,6 +60,22 @@ export default function Topbar() {
     return item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
   };
 
+  // Load current user profile
+  type UserProfile = { id: string; nome: string; avatar_iniziali: string; avatar_bg: string; avatar_colore: string; };
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      const { data: profile } = await supabase
+        .from("cg_utenti")
+        .select("id, nome, avatar_iniziali, avatar_bg, avatar_colore")
+        .eq("auth_user_id", data.session.user.id)
+        .single();
+      if (profile) setUserProfile(profile as UserProfile);
+    });
+  }, []);
+
   return (
     <header style={{
       height: 56,
@@ -168,44 +184,45 @@ export default function Topbar() {
       <div ref={userRef} style={{ position: "relative", flexShrink: 0 }}>
         <button
           onClick={() => setOpenUser(!openUser)}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "5px 10px", borderRadius: 8,
-            border: "1px solid #334155", backgroundColor: "transparent",
-            cursor: "pointer", fontFamily: "inherit",
-            fontSize: 13, color: "#e2e8f0", fontWeight: 500,
-          }}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 10px", borderRadius: 8, border: "1px solid #334155", backgroundColor: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}
         >
-          <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <User size={13} color="white" />
+          {/* Avatar */}
+          <div style={{
+            width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
+            backgroundColor: userProfile?.avatar_bg ?? "#3b82f6",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 11, fontWeight: 700, color: userProfile?.avatar_colore ?? "white",
+            letterSpacing: "0.02em",
+          }}>
+            {userProfile ? userProfile.avatar_iniziali.slice(0, 2).toUpperCase() : <User size={13} color="white" />}
           </div>
-          Admin
+          {userProfile?.nome.split(" ")[0] ?? "Profilo"}
           <ChevronDown size={12} style={{ color: "#64748b", transform: openUser ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
         </button>
 
         {openUser && (
-          <div className="animate-fadeIn" style={{
-            position: "absolute", right: 0, top: "calc(100% + 8px)",
-            width: 180, backgroundColor: "white",
-            border: "1px solid var(--border)", borderRadius: 10,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-            overflow: "hidden", zIndex: 50,
-          }}>
-            {[
-              { label: "Profilo",       icon: <User size={14} />,     href: "/profile" },
-              { label: "Impostazioni",  icon: <Settings size={14} />, href: "/settings" },
-            ].map((item) => (
-              <Link key={item.href} href={item.href}
-                onClick={() => setOpenUser(false)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", fontSize: 13, color: "#374151", textDecoration: "none" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-              >
-                {item.icon}{item.label}
-              </Link>
-            ))}
+          <div className="animate-fadeIn" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 200, backgroundColor: "white", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", zIndex: 50 }}>
+            {/* User info header */}
+            {userProfile && (
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", backgroundColor: userProfile.avatar_bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: userProfile.avatar_colore, flexShrink: 0 }}>
+                  {userProfile.avatar_iniziali.slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ overflow: "hidden" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userProfile.nome}</div>
+                </div>
+              </div>
+            )}
+            <Link href="/profile" onClick={() => setOpenUser(false)}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", fontSize: 13, color: "#374151", textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
+              <User size={14} />Profilo
+            </Link>
             <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
-            <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", width: "100%", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "inherit", textAlign: "left" }}
+            <button onClick={handleLogout}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", width: "100%", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "inherit", textAlign: "left" }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fef2f2")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
