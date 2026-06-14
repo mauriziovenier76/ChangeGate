@@ -16,7 +16,10 @@ export async function POST(req: Request) {
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email, password, email_confirm: true,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.log("Auth error full:", JSON.stringify(error));
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
   // Crea record in cg_utenti
   await supabaseAdmin.from("cg_utenti").insert({
