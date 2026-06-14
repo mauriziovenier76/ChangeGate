@@ -318,6 +318,8 @@ export default function UtentiPage() {
     alert(`Invito inviato a ${u.email}`);
     loadData();
   };
+
+  const loadData = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("cg_utenti")
