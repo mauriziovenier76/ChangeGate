@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import {
   LayoutDashboard, GitPullRequest, CalendarDays,
   Settings, ChevronDown, LogOut, User, FolderGit2,
   Building2, FolderOpen, Users, UserCircle,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 type NavItem = {
   label: string;
@@ -34,10 +35,16 @@ const nav: NavItem[] = [
 
 export default function Topbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUser, setOpenUser]         = useState(false);
   const navRef  = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -198,7 +205,10 @@ export default function Topbar() {
               </Link>
             ))}
             <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
-            <button style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", width: "100%", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "inherit", textAlign: "left" }}>
+            <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", width: "100%", border: "none", backgroundColor: "transparent", cursor: "pointer", fontSize: 13, color: "#ef4444", fontFamily: "inherit", textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#fef2f2")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
               <LogOut size={14} />Logout
             </button>
           </div>
