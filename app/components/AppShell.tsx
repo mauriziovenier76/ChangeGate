@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const isAuth   = pathname === "/login" || pathname.startsWith("/auth/");
+  const isAuth   = pathname === "/login" || pathname.startsWith("/auth/") || pathname === "/setup";
   const [checking, setChecking] = useState(!isAuth);
 
   useEffect(() => {
