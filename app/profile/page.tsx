@@ -51,9 +51,22 @@ export default function ProfilePage() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
-      const { data: p } = await supabase.from("cg_utenti")
+      const authUser = data.session.user;
+
+      let { data: p } = await supabase.from("cg_utenti")
         .select("id, nome, email, ruolo, avatar_iniziali, avatar_bg, avatar_colore")
-        .eq("auth_user_id", data.session.user.id).single();
+        .eq("auth_user_id", authUser.id).single();
+
+      if (!p && authUser.email) {
+        const { data: byEmail } = await supabase.from("cg_utenti")
+          .select("id, nome, email, ruolo, avatar_iniziali, avatar_bg, avatar_colore")
+          .eq("email", authUser.email).single();
+        if (byEmail) {
+          await supabase.from("cg_utenti").update({ auth_user_id: authUser.id }).eq("id", byEmail.id);
+          p = byEmail;
+        }
+      }
+
       if (p) {
         setProfile(p as typeof profile);
         setForm({ nome: p.nome, avatar_iniziali: p.avatar_iniziali, avatar_bg: p.avatar_bg, avatar_colore: p.avatar_colore });

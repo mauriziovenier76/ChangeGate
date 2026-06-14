@@ -67,12 +67,29 @@ export default function Topbar() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
-      const { data: profile } = await supabase
+      const authUser = data.session.user;
+
+      // Prima cerca per auth_user_id
+      let { data: p } = await supabase
         .from("cg_utenti")
         .select("id, nome, avatar_iniziali, avatar_bg, avatar_colore")
-        .eq("auth_user_id", data.session.user.id)
+        .eq("auth_user_id", authUser.id)
         .single();
-      if (profile) setUserProfile(profile as UserProfile);
+
+      // Fallback: cerca per email e collega auth_user_id
+      if (!p && authUser.email) {
+        const { data: byEmail } = await supabase
+          .from("cg_utenti")
+          .select("id, nome, avatar_iniziali, avatar_bg, avatar_colore")
+          .eq("email", authUser.email)
+          .single();
+        if (byEmail) {
+          await supabase.from("cg_utenti").update({ auth_user_id: authUser.id }).eq("id", byEmail.id);
+          p = byEmail;
+        }
+      }
+
+      if (p) setUserProfile(p as UserProfile);
     });
   }, []);
 
