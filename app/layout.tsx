@@ -2,6 +2,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import AppShell from "./components/AppShell";
+import { UserProvider } from "@/lib/user-context";
 
 export const metadata: Metadata = {
   title: "ChangeGate",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="it">
       <body>
-        <AppShell>{children}</AppShell>
+        <UserProvider>
+          <AppShell>{children}</AppShell>
+        </UserProvider>
       </body>
     </html>
   );

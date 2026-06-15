@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Ruolo = "pm" | "specialista" | "admin";
+type Ruolo = "admin" | "pm_fornitore" | "ps_fornitore" | "pm_cliente" | "ku_cliente";
 
 type Utente = {
   id: string;
@@ -47,9 +47,11 @@ function Avatar({ iniziali, bg, colore, size = 36 }: { iniziali: string; bg: str
 // ─── Ruolo badge ──────────────────────────────────────────────────────────────
 
 const ruoloStyle: Record<Ruolo, { bg: string; color: string; label: string }> = {
-  pm:          { bg: "#eff6ff", color: "#2563eb", label: "PM" },
-  specialista: { bg: "#f0fdf4", color: "#059669", label: "Specialista" },
-  admin:       { bg: "#fdf4ff", color: "#9333ea", label: "Admin" },
+  admin:        { bg: "#fdf4ff", color: "#9333ea", label: "Admin" },
+  pm_fornitore: { bg: "#eff6ff", color: "#2563eb", label: "PM Fornitore" },
+  ps_fornitore: { bg: "#f0fdf4", color: "#059669", label: "PS Fornitore" },
+  pm_cliente:   { bg: "#fff7ed", color: "#ea580c", label: "PM Cliente" },
+  ku_cliente:   { bg: "#fef3c7", color: "#92400e", label: "KU Cliente" },
 };
 
 // ─── Color picker palette ─────────────────────────────────────────────────────
@@ -107,6 +109,30 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Ruoli disponibili in base all'associazione
+  const ruoliFornitore: { value: Ruolo; label: string }[] = [
+    { value: "admin",        label: "Admin" },
+    { value: "pm_fornitore", label: "PM Fornitore" },
+    { value: "ps_fornitore", label: "PS Fornitore" },
+  ];
+  const ruoliCliente: { value: Ruolo; label: string }[] = [
+    { value: "pm_cliente", label: "PM Cliente" },
+    { value: "ku_cliente", label: "KU Cliente" },
+  ];
+  const ruoliDisponibili = assocType === "fornitore" ? ruoliFornitore
+    : assocType === "cliente" ? ruoliCliente
+    : [...ruoliFornitore, ...ruoliCliente];
+
+  // Quando cambia assocType, resetta ruolo a un valore valido
+  const handleAssocType = (t: "fornitore" | "cliente" | "nessuno") => {
+    setAssocType(t);
+    if (t === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
+      setForm((f) => ({ ...f, ruolo: "pm_fornitore", fornitore_id: "", cliente_id: "" }));
+    } else if (t === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
+      setForm((f) => ({ ...f, ruolo: "pm_cliente", fornitore_id: "", cliente_id: "" }));
+    }
+  };
+
   // Auto-generate iniziali from nome only when creating (not editing)
   useEffect(() => {
     if (!isEdit && form.nome.trim()) {
@@ -128,6 +154,13 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
     if (assocType === "fornitore" && !form.fornitore_id) { setError("Seleziona un fornitore."); return; }
     if (assocType === "cliente"   && !form.cliente_id)   { setError("Seleziona un cliente."); return; }
+    // Validazione ruolo coerente con associazione
+    if (assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
+      setError("Il ruolo selezionato non è compatibile con un utente Fornitore."); return;
+    }
+    if (assocType === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
+      setError("Il ruolo selezionato non è compatibile con un utente Cliente."); return;
+    }
     setSaving(true); setError(null);
 
     const payload = {
@@ -190,10 +223,10 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
             <div>
               <label style={labelStyle}>Ruolo</label>
               <select value={form.ruolo} onChange={(e) => set("ruolo", e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
-                <option value="pm">PM</option>
-                <option value="specialista">Specialista</option>
-                <option value="admin">Admin</option>
+                {ruoliDisponibili.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
+              {assocType === "fornitore" && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Solo ruoli compatibili con utenti Fornitore</div>}
+              {assocType === "cliente"   && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Solo ruoli compatibili con utenti Cliente</div>}
             </div>
             <div>
               <label style={labelStyle}>Stato</label>
@@ -232,9 +265,9 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
           {sectionTitle("3 · Associazione")}
           <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
             {(["nessuno", "fornitore", "cliente"] as const).map((t) => (
-              <button key={t} onClick={() => setAssocType(t)}
+              <button key={t} onClick={() => handleAssocType(t)}
                 style={{ padding: "7px 16px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, fontWeight: assocType === t ? 700 : 500, backgroundColor: assocType === t ? "#eff6ff" : "white", color: assocType === t ? "#2563eb" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", borderColor: assocType === t ? "#2563eb" : "var(--border)" }}>
-                {t === "nessuno" ? "Nessuna" : t === "fornitore" ? "Fornitore" : "Cliente"}
+                {t === "nessuno" ? "Nessuna" : t === "fornitore" ? "🏢 Fornitore" : "👤 Cliente"}
               </button>
             ))}
           </div>
@@ -375,9 +408,9 @@ export default function UtentiPage() {
         </div>
         {/* Ruolo tabs */}
         <div style={{ display: "flex", backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-          {([["tutti", "Tutti"], ["pm", "PM"], ["specialista", "Specialista"], ["admin", "Admin"]] as const).map(([val, label]) => (
+          {([["tutti", "Tutti"], ["admin", "Admin"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]] as const).map(([val, label]) => (
             <button key={val} onClick={() => setFilterRuolo(val as Ruolo | "tutti")}
-              style={{ padding: "8px 14px", border: "none", borderRight: val !== "admin" ? "1px solid var(--border)" : "none", fontSize: 13, fontWeight: filterRuolo === val ? 700 : 500, color: filterRuolo === val ? "#2563eb" : "var(--text-secondary)", backgroundColor: filterRuolo === val ? "#eff6ff" : "transparent", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}>
+              style={{ padding: "8px 12px", border: "none", borderRight: val !== "ku_cliente" ? "1px solid var(--border)" : "none", fontSize: 12, fontWeight: filterRuolo === val ? 700 : 500, color: filterRuolo === val ? "#2563eb" : "var(--text-secondary)", backgroundColor: filterRuolo === val ? "#eff6ff" : "transparent", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}>
               {label}
             </button>
           ))}
