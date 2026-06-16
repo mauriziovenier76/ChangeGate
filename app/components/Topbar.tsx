@@ -50,8 +50,8 @@ export default function Topbar() {
       label: "Configurazioni",
       icon: <Settings size={15} />,
       children: [
-        { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} /> },
-        { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} /> },
+        { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} />,  hideForAdmin: true },
+        { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} />, hideForAdmin: true },
         { label: "Fornitori", href: "/config/fornitori", icon: <Users size={14} /> },
         { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} /> },
       ],
@@ -120,7 +120,7 @@ export default function Topbar() {
                     boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
                     overflow: "hidden", zIndex: 50,
                   }}>
-                    {item.children.map((child) => {
+                    {item.children.filter((child) => !(isAdmin && (child as NavItem).hideForAdmin)).map((child) => {
                       const childActive = pathname.startsWith(child.href);
                       return (
                         <Link key={child.href} href={child.href}
