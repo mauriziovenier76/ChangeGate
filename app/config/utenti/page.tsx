@@ -161,23 +161,25 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
     if (isAdmin && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
-    if (assocType === "cliente"   && !form.cliente_id)   { setError("Seleziona un cliente."); return; }
-    // Validazione ruolo coerente con associazione
-    if (assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
+    if (!isAdmin && assocType === "fornitore" && !form.fornitore_id) { setError("Seleziona un fornitore."); return; }
+    if (!isAdmin && assocType === "cliente" && !form.cliente_id) { setError("Seleziona un cliente."); return; }
+    // Validazione ruolo coerente con associazione (solo per non-admin)
+    if (!isAdmin && assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Fornitore."); return;
     }
-    if (assocType === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
+    if (!isAdmin && assocType === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Cliente."); return;
     }
     setSaving(true); setError(null);
 
+    const effectiveAssoc = isAdmin ? "fornitore" : assocType;
     const payload = {
       nome:             form.nome.trim(),
       email:            form.email || null,
       ruolo:            form.ruolo,
       attivo:           form.attivo,
-      fornitore_id:     assocType === "fornitore" ? form.fornitore_id || null : null,
-      cliente_id:       assocType === "cliente"   ? form.cliente_id   || null : null,
+      fornitore_id:     effectiveAssoc === "fornitore" ? form.fornitore_id || null : null,
+      cliente_id:       effectiveAssoc === "cliente"   ? form.cliente_id   || null : null,
       avatar_iniziali:  form.avatar_iniziali.slice(0, 2).toUpperCase(),
       avatar_bg:        form.avatar_bg,
       avatar_colore:    form.avatar_colore,
