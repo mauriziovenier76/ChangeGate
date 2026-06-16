@@ -104,7 +104,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   const [form, setForm] = useState({
     nome:            utente?.nome            ?? "",
     email:           utente?.email           ?? "",
-    ruolo:           (utente?.ruolo          ?? "pm") as Ruolo,
+    ruolo:           (utente?.ruolo ?? "pm_fornitore") as Ruolo,
     attivo:          utente?.attivo          ?? true,
     fornitore_id:    utente?.fornitore_id    ?? "",
     cliente_id:      utente?.cliente_id      ?? "",
