@@ -9,33 +9,20 @@ import {
   Building2, FolderOpen, Users, UserCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 type NavItem = {
   label: string;
   href?: string;
   icon: React.ReactNode;
   children?: { label: string; href: string; icon: React.ReactNode }[];
+  hideForAdmin?: boolean;
 };
-
-const nav: NavItem[] = [
-  { label: "Dashboard",      href: "/dashboard",  icon: <LayoutDashboard size={15} /> },
-  { label: "Change Request", href: "/requests",   icon: <GitPullRequest size={15} /> },
-  { label: "Planning",       href: "/planning",   icon: <CalendarDays size={15} /> },
-  {
-    label: "Configurazioni",
-    icon: <Settings size={15} />,
-    children: [
-      { label: "Clienti",    href: "/config/clienti",   icon: <Building2 size={14} /> },
-      { label: "Progetti",   href: "/config/progetti",  icon: <FolderOpen size={14} /> },
-      { label: "Fornitori",  href: "/config/fornitori", icon: <Users size={14} /> },
-      { label: "Utenti",     href: "/config/utenti",    icon: <UserCircle size={14} /> },
-    ],
-  },
-];
 
 export default function Topbar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
+  const { user, isAdmin } = useUser();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUser, setOpenUser]         = useState(false);
   const navRef  = useRef<HTMLDivElement>(null);
@@ -55,44 +42,28 @@ export default function Topbar() {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
+  const allNav: NavItem[] = [
+    { label: "Dashboard",      href: "/dashboard", icon: <LayoutDashboard size={15} /> },
+    { label: "Change Request", href: "/requests",  icon: <GitPullRequest size={15} />, hideForAdmin: true },
+    { label: "Planning",       href: "/planning",  icon: <CalendarDays size={15} />,   hideForAdmin: true },
+    {
+      label: "Configurazioni",
+      icon: <Settings size={15} />,
+      children: [
+        { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} /> },
+        { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} /> },
+        { label: "Fornitori", href: "/config/fornitori", icon: <Users size={14} /> },
+        { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} /> },
+      ],
+    },
+  ];
+
+  const nav = allNav.filter((item) => !(isAdmin && item.hideForAdmin));
+
   const isActive = (item: NavItem) => {
     if (item.href) return pathname === item.href || pathname.startsWith(item.href + "/");
     return item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
   };
-
-  // Load current user profile
-  type UserProfile = { id: string; nome: string; avatar_iniziali: string; avatar_bg: string; avatar_colore: string; };
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
-      const authUser = data.session.user;
-
-      // Prima cerca per auth_user_id
-      let { data: p } = await supabase
-        .from("cg_utenti")
-        .select("id, nome, avatar_iniziali, avatar_bg, avatar_colore")
-        .eq("auth_user_id", authUser.id)
-        .single();
-
-      // Fallback: cerca per email e collega auth_user_id
-      if (!p && authUser.email) {
-        const { data: byEmail } = await supabase
-          .from("cg_utenti")
-          .select("id, nome, avatar_iniziali, avatar_bg, avatar_colore")
-          .eq("email", authUser.email)
-          .single();
-        if (byEmail) {
-          await supabase.from("cg_utenti").update({ auth_user_id: authUser.id }).eq("id", byEmail.id);
-          p = byEmail;
-        }
-      }
-
-      if (p) setUserProfile(p as UserProfile);
-    });
-  }, []);
-
   return (
     <header style={{
       height: 56,
@@ -206,27 +177,27 @@ export default function Topbar() {
           {/* Avatar */}
           <div style={{
             width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-            backgroundColor: userProfile?.avatar_bg ?? "#3b82f6",
+            backgroundColor: user?.avatar_bg ?? "#3b82f6",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontWeight: 700, color: userProfile?.avatar_colore ?? "white",
+            fontSize: 11, fontWeight: 700, color: user?.avatar_colore ?? "white",
             letterSpacing: "0.02em",
           }}>
-            {userProfile ? userProfile.avatar_iniziali.slice(0, 2).toUpperCase() : <User size={13} color="white" />}
+            {user ? user.avatar_iniziali.slice(0, 2).toUpperCase() : <User size={13} color="white" />}
           </div>
-          {userProfile?.nome.split(" ")[0] ?? "Profilo"}
+          {user?.nome.split(" ")[0] ?? "Profilo"}
           <ChevronDown size={12} style={{ color: "#64748b", transform: openUser ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
         </button>
 
         {openUser && (
           <div className="animate-fadeIn" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 200, backgroundColor: "white", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", overflow: "hidden", zIndex: 50 }}>
             {/* User info header */}
-            {userProfile && (
+            {user && (
               <div style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: "50%", backgroundColor: userProfile.avatar_bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: userProfile.avatar_colore, flexShrink: 0 }}>
-                  {userProfile.avatar_iniziali.slice(0, 2).toUpperCase()}
+                <div style={{ width: 34, height: 34, borderRadius: "50%", backgroundColor: user.avatar_bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: user.avatar_colore, flexShrink: 0 }}>
+                  {user.avatar_iniziali.slice(0, 2).toUpperCase()}
                 </div>
                 <div style={{ overflow: "hidden" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userProfile.nome}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.nome}</div>
                 </div>
               </div>
             )}
