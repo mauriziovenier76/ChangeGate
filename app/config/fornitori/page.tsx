@@ -361,7 +361,7 @@ export default function FornitoriPage() {
     const { data, error } = await supabase
       .from("cg_fornitori")
       .select(`
-        id, nome, email, attivo,
+        id, nome, email, attivo, created_at,
         cg_team ( id, ruolo ),
         cg_clienti (
           id,
