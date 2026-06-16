@@ -18,6 +18,7 @@ type Utente = {
   fornitore_id: string | null;
   cliente_id: string | null;
   fornitore_nome: string | null;
+  fornitore_created_at: string | null;
   cliente_nome: string | null;
   avatar_iniziali: string;
   avatar_bg: string;
@@ -372,14 +373,15 @@ export default function UtentiPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("cg_utenti")
-      .select("*, cg_fornitori(nome), cg_clienti(nome)")
+      .select("*, cg_fornitori(nome, created_at), cg_clienti(nome)")
       .order("nome");
     if (error) { console.error(error); setLoading(false); return; }
     setUtenti((data ?? []).map((u) => ({
       ...u,
-      fornitore_nome: (u.cg_fornitori as unknown as { nome: string } | null)?.nome ?? null,
-      cliente_nome:   (u.cg_clienti   as unknown as { nome: string } | null)?.nome ?? null,
-      auth_user_id:   u.auth_user_id ?? null,
+      fornitore_nome:       (u.cg_fornitori as unknown as { nome: string; created_at: string } | null)?.nome ?? null,
+      fornitore_created_at: (u.cg_fornitori as unknown as { nome: string; created_at: string } | null)?.created_at ?? null,
+      cliente_nome:         (u.cg_clienti   as unknown as { nome: string } | null)?.nome ?? null,
+      auth_user_id:         u.auth_user_id ?? null,
     })));
     setLoading(false);
   };
@@ -445,82 +447,100 @@ export default function UtentiPage() {
       {/* Table */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Caricamento...</div>
-      ) : (
-        <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
-                {["Utente", "Email", "Ruolo", "Associazione", "Stato", ""].map((h) => (
-                  <th key={h} style={{ padding: "11px 18px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>Nessun utente trovato</td></tr>
-              ) : filtered.map((u, i) => (
-                <tr key={u.id}
-                  style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--border-soft)" : "none", transition: "background 0.1s", cursor: "pointer" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
-                  {/* Utente */}
-                  <td style={{ padding: "12px 18px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <Avatar iniziali={u.avatar_iniziali} bg={u.avatar_bg} colore={u.avatar_colore} size={36} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.nome}</span>
-                    </div>
-                  </td>
-                  {/* Email */}
-                  <td style={{ padding: "12px 18px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {u.email ?? <span style={{ color: "#cbd5e1" }}>—</span>}
-                  </td>
-                  {/* Ruolo */}
-                  <td style={{ padding: "12px 18px" }}>
-                    <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: ruoloStyle[u.ruolo].bg, color: ruoloStyle[u.ruolo].color }}>
-                      {ruoloStyle[u.ruolo].label}
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun utente trovato</div>
+      ) : (() => {
+        // Raggruppa per fornitore (null = clienti/nessuno)
+        const groups = new Map<string, { label: string; createdAt: string | null; utenti: Utente[] }>();
+
+        filtered.forEach((u) => {
+          const key = u.fornitore_nome ?? (u.cliente_nome ? `__cliente__${u.cliente_nome}` : "__nessuno__");
+          if (!groups.has(key)) {
+            groups.set(key, {
+              label: u.fornitore_nome ?? u.cliente_nome ?? "Nessuna associazione",
+              createdAt: u.fornitore_created_at ?? null,
+              utenti: [],
+            });
+          }
+          groups.get(key)!.utenti.push(u);
+        });
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {Array.from(groups.entries()).map(([key, group]) => (
+              <div key={key} style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+                {/* Group header */}
+                <div style={{ padding: "12px 20px", backgroundColor: key.startsWith("__") ? "#f8fafc" : "#f0f4ff", borderBottom: "1px solid var(--border-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+                      {key.startsWith("__cliente__") ? "👤 " : key === "__nessuno__" ? "" : "🏢 "}
+                      {group.label}
                     </span>
-                  </td>
-                  {/* Associazione */}
-                  <td style={{ padding: "12px 18px" }}>
-                    {u.fornitore_nome ? (
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>Fornitore</div>
-                        <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{u.fornitore_nome}</div>
-                      </div>
-                    ) : u.cliente_nome ? (
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>Cliente</div>
-                        <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{u.cliente_nome}</div>
-                      </div>
-                    ) : <span style={{ fontSize: 12, color: "#cbd5e1" }}>—</span>}
-                  </td>
-                  {/* Stato */}
-                  <td style={{ padding: "12px 18px" }}>
-                    <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: u.attivo ? "#d1fae5" : "#f1f5f9", color: u.attivo ? "#065f46" : "#64748b" }}>
-                      {u.attivo ? "Attivo" : "Inattivo"}
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", backgroundColor: "white", padding: "2px 8px", borderRadius: 20, border: "1px solid var(--border)" }}>
+                      {group.utenti.length} {group.utenti.length === 1 ? "utente" : "utenti"}
                     </span>
-                  </td>
-                  {/* Azioni */}
-                  <td style={{ padding: "12px 18px", textAlign: "right" }}>
-                    <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
-                      {!u.auth_user_id && u.email && (
-                        <button onClick={() => handleInvite(u)} disabled={inviting === u.id}
-                          style={{ fontSize: 12, color: "#059669", background: "none", border: "1px solid #059669", borderRadius: 6, cursor: inviting === u.id ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, padding: "3px 10px", opacity: inviting === u.id ? 0.6 : 1 }}>
-                          {inviting === u.id ? "Invio..." : "✉ Invita"}
-                        </button>
-                      )}
-                      {u.auth_user_id && (
-                        <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Attivo</span>
-                      )}
-                      <button onClick={() => setEditing(u)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  </div>
+                  {group.createdAt && (
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      Fornitore creato il {new Date(group.createdAt).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                    </span>
+                  )}
+                </div>
+                {/* Users table */}
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
+                      {["Utente", "Email", "Ruolo", "Stato", ""].map((h) => (
+                        <th key={h} style={{ padding: "9px 18px", textAlign: "left", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.utenti.map((u, i) => (
+                      <tr key={u.id}
+                        style={{ borderBottom: i < group.utenti.length - 1 ? "1px solid var(--border-soft)" : "none", transition: "background 0.1s", cursor: "pointer" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+                        <td style={{ padding: "11px 18px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar iniziali={u.avatar_iniziali} bg={u.avatar_bg} colore={u.avatar_colore} size={32} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{u.nome}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, color: "var(--text-secondary)" }}>
+                          {u.email ?? <span style={{ color: "#cbd5e1" }}>—</span>}
+                        </td>
+                        <td style={{ padding: "11px 18px" }}>
+                          <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: ruoloStyle[u.ruolo].bg, color: ruoloStyle[u.ruolo].color }}>
+                            {ruoloStyle[u.ruolo].label}
+                          </span>
+                        </td>
+                        <td style={{ padding: "11px 18px" }}>
+                          <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, backgroundColor: u.attivo ? "#d1fae5" : "#f1f5f9", color: u.attivo ? "#065f46" : "#64748b" }}>
+                            {u.attivo ? "Attivo" : "Inattivo"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "11px 18px", textAlign: "right" }}>
+                          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
+                            {!u.auth_user_id && u.email && (
+                              <button onClick={() => handleInvite(u)} disabled={inviting === u.id}
+                                style={{ fontSize: 12, color: "#059669", background: "none", border: "1px solid #059669", borderRadius: 6, cursor: inviting === u.id ? "not-allowed" : "pointer", fontFamily: "inherit", fontWeight: 600, padding: "3px 10px", opacity: inviting === u.id ? 0.6 : 1 }}>
+                                {inviting === u.id ? "Invio..." : "✉ Invita"}
+                              </button>
+                            )}
+                            {u.auth_user_id && <span style={{ fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Attivo</span>}
+                            <button onClick={() => setEditing(u)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {showNew  && <UtenteModal onClose={() => setShowNew(false)}    onSaved={loadData} />}
       {editing  && <UtenteModal onClose={() => setEditing(null)}     onSaved={loadData} utente={editing} />}
