@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Search, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,12 +88,17 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
 
 function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSaved: () => void; utente?: Utente }) {
   const isEdit = !!utente;
+  const { isAdmin } = useUser();
   const [fornitori, setFornitori] = useState<OptionRow[]>([]);
   const [clienti, setClienti]     = useState<OptionRow[]>([]);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState<string | null>(null);
+  // Admin può associare solo a Fornitore e obbligatoriamente
   const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">(
-    utente?.fornitore_id ? "fornitore" : utente?.cliente_id ? "cliente" : "nessuno"
+    isAdmin && !isEdit ? "fornitore"
+    : utente?.fornitore_id ? "fornitore"
+    : utente?.cliente_id ? "cliente"
+    : "nessuno"
   );
 
   const [form, setForm] = useState({
@@ -109,12 +115,14 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Ruoli disponibili in base all'associazione
-  const ruoliFornitore: { value: Ruolo; label: string }[] = [
-    { value: "admin",        label: "Admin" },
-    { value: "pm_fornitore", label: "PM Fornitore" },
-    { value: "ps_fornitore", label: "PS Fornitore" },
-  ];
+  // Ruoli disponibili in base all'associazione e al ruolo dell'utente loggato
+  const ruoliFornitore: { value: Ruolo; label: string }[] = isAdmin
+    ? [{ value: "pm_fornitore", label: "PM Fornitore" }]  // Admin può creare solo PM Fornitore
+    : [
+        { value: "admin",        label: "Admin" },
+        { value: "pm_fornitore", label: "PM Fornitore" },
+        { value: "ps_fornitore", label: "PS Fornitore" },
+      ];
   const ruoliCliente: { value: Ruolo; label: string }[] = [
     { value: "pm_cliente", label: "PM Cliente" },
     { value: "ku_cliente", label: "KU Cliente" },
@@ -152,7 +160,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   const handleSave = async () => {
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
-    if (assocType === "fornitore" && !form.fornitore_id) { setError("Seleziona un fornitore."); return; }
+    if (isAdmin && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
     if (assocType === "cliente"   && !form.cliente_id)   { setError("Seleziona un cliente."); return; }
     // Validazione ruolo coerente con associazione
     if (assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
@@ -263,14 +271,20 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
           {/* 3 — Associazione */}
           {sectionTitle("3 · Associazione")}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            {(["nessuno", "fornitore", "cliente"] as const).map((t) => (
-              <button key={t} onClick={() => handleAssocType(t)}
-                style={{ padding: "7px 16px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, fontWeight: assocType === t ? 700 : 500, backgroundColor: assocType === t ? "#eff6ff" : "white", color: assocType === t ? "#2563eb" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", borderColor: assocType === t ? "#2563eb" : "var(--border)" }}>
-                {t === "nessuno" ? "Nessuna" : t === "fornitore" ? "🏢 Fornitore" : "👤 Cliente"}
-              </button>
-            ))}
-          </div>
+          {isAdmin ? (
+            <div style={{ padding: "10px 14px", backgroundColor: "#eff6ff", borderRadius: 8, fontSize: 13, color: "#1e40af", fontWeight: 500, marginBottom: 16 }}>
+              🏢 Utente associato obbligatoriamente a un Fornitore
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              {(["nessuno", "fornitore", "cliente"] as const).map((t) => (
+                <button key={t} onClick={() => handleAssocType(t)}
+                  style={{ padding: "7px 16px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, fontWeight: assocType === t ? 700 : 500, backgroundColor: assocType === t ? "#eff6ff" : "white", color: assocType === t ? "#2563eb" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", borderColor: assocType === t ? "#2563eb" : "var(--border)" }}>
+                  {t === "nessuno" ? "Nessuna" : t === "fornitore" ? "🏢 Fornitore" : "👤 Cliente"}
+                </button>
+              ))}
+            </div>
+          )}
 
           {assocType === "fornitore" && (
             <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
