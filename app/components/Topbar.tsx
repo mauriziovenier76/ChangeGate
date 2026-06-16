@@ -15,8 +15,8 @@ type NavItem = {
   label: string;
   href?: string;
   icon: React.ReactNode;
-  children?: { label: string; href: string; icon: React.ReactNode }[];
   hideForAdmin?: boolean;
+  children?: { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean }[];
 };
 
 export default function Topbar() {
