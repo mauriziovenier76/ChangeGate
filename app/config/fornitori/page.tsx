@@ -11,6 +11,7 @@ type Fornitore = {
   nome: string;
   email: string | null;
   attivo: boolean;
+  created_at: string | null;
   pm: number;
   specialisti: number;
   clientCount: number;
@@ -385,6 +386,7 @@ export default function FornitoriPage() {
         nome:         f.nome,
         email:        f.email,
         attivo:       f.attivo,
+        created_at:   f.created_at ?? null,
         pm:           team.filter((t) => t.ruolo === "pm").length,
         specialisti:  team.filter((t) => t.ruolo === "specialista").length,
         clientCount:  clienti.length,
@@ -428,6 +430,7 @@ export default function FornitoriPage() {
               <col style={{ width: 230 }} />
               <col style={{ width: 260 }} />
               <col style={{ width: 130 }} />
+              <col style={{ width: 130 }} />
               <col style={{ width: 110 }} />
             </colgroup>
             <thead>
@@ -439,6 +442,7 @@ export default function FornitoriPage() {
                   { label: "Progetti" },
                   { label: "CR chiuse / aperte" },
                   { label: "Avanzamento" },
+                  { label: "Creato il" },
                   { label: "Stato" },
                   { label: "" },
                 ].map((h) => (
@@ -508,6 +512,11 @@ export default function FornitoriPage() {
                     {/* Avanzamento */}
                     <td style={{ padding: "16px 20px" }}>
                       <MiniProgress pct={pct} closed={f.crClosed} total={f.crTotal} />
+                    </td>
+
+                    {/* Creato il */}
+                    <td style={{ padding: "16px 20px", fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" as const }}>
+                      {f.created_at ? new Date(f.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }) : <span style={{ color: "#cbd5e1" }}>—</span>}
                     </td>
 
                     {/* Stato */}
