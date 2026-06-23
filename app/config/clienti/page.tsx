@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, X, Search, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,19 +22,31 @@ type Cliente = {
 
 // ─── New Cliente Modal ────────────────────────────────────────────────────────
 
-function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewClienteModal({
+  onClose,
+  onCreated,
+  forcedFornitoreId,
+  forcedFornitoreNome,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+  forcedFornitoreId?: string | null;
+  forcedFornitoreNome?: string | null;
+}) {
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: "", email: "", telefono: "", indirizzo: "",
-    fornitore_id: "", attivo: true,
+    fornitore_id: forcedFornitoreId ?? "",
+    attivo: true,
   });
 
   useEffect(() => {
+    if (forcedFornitoreId) return;
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
-  }, []);
+  }, [forcedFornitoreId]);
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -88,7 +101,6 @@ function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreate
         {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
 
-          {/* Anagrafica */}
           {sectionTitle("1 · Anagrafica")}
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>Nome <span style={{ color: "#dc2626" }}>*</span></label>
@@ -109,32 +121,39 @@ function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <input type="text" placeholder="Via Roma 1, 20100 Milano" value={form.indirizzo} onChange={(e) => set("indirizzo", e.target.value)} style={inputStyle} />
           </div>
 
-          {/* Fornitore */}
           {sectionTitle("2 · Fornitore di riferimento")}
-          <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 28 }}>
-            <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>
-              Seleziona il fornitore che gestisce questo cliente
+          {forcedFornitoreId ? (
+            // pm_fornitore: fornitore fisso, non modificabile
+            <div style={{ marginBottom: 28, padding: "10px 14px", borderRadius: 8, border: "1.5px solid var(--border)", backgroundColor: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{forcedFornitoreNome ?? forcedFornitoreId}</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>Assegnato automaticamente</span>
             </div>
-            {fornitori.length === 0 ? (
-              <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>Nessun fornitore disponibile</div>
-            ) : (
-              fornitori.map((f) => {
-                const sel = form.fornitore_id === f.id;
-                return (
-                  <div key={f.id} onClick={() => set("fornitore_id", f.id)}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
-                    onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                    onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}
-                  >
-                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
-                    {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
-                  </div>
-                );
-              })
-            )}
-          </div>
+          ) : (
+            // admin: lista completa selezionabile
+            <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 28 }}>
+              <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>
+                Seleziona il fornitore che gestisce questo cliente
+              </div>
+              {fornitori.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>Nessun fornitore disponibile</div>
+              ) : (
+                fornitori.map((f) => {
+                  const sel = form.fornitore_id === f.id;
+                  return (
+                    <div key={f.id} onClick={() => set("fornitore_id", f.id)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
+                      onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                      onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
+                      {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
 
-          {/* Stato */}
           {sectionTitle("3 · Stato")}
           <div onClick={() => set("attivo", !form.attivo)}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, border: "1.5px solid var(--border)", cursor: "pointer", backgroundColor: form.attivo ? "#f0fdf4" : "#f8fafc" }}>
@@ -142,7 +161,6 @@ function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Cliente attivo</div>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>I clienti attivi compaiono nelle liste di selezione</div>
             </div>
-            {/* Toggle */}
             <div style={{ width: 44, height: 24, borderRadius: 99, backgroundColor: form.attivo ? "#22c55e" : "#cbd5e1", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
               <div style={{ position: "absolute", top: 3, left: form.attivo ? 23 : 3, width: 18, height: 18, borderRadius: "50%", backgroundColor: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
             </div>
@@ -170,12 +188,20 @@ function NewClienteModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 // ─── Edit Cliente Drawer ──────────────────────────────────────────────────────
 
-function EditClienteDrawer({ cliente, fornitori, onClose, onSaved }: {
-  cliente: Cliente; fornitori: Fornitore[]; onClose: () => void; onSaved: () => void;
+function EditClienteDrawer({
+  cliente,
+  fornitori,
+  onClose,
+  onSaved,
+  forcedFornitoreId,
+}: {
+  cliente: Cliente;
+  fornitori: Fornitore[];
+  onClose: () => void;
+  onSaved: () => void;
+  forcedFornitoreId?: string | null;
 }) {
   const [form, setForm] = useState({
     nome:         cliente.nome,
@@ -261,20 +287,28 @@ function EditClienteDrawer({ cliente, fornitori, onClose, onSaved }: {
 
           <div>
             <label style={labelStyle}>Fornitore di riferimento *</label>
-            <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-              {fornitori.map((f) => {
-                const sel = form.fornitore_id === f.id;
-                return (
-                  <div key={f.id} onClick={() => { set("fornitore_id", f.id); setSaved(false); }}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
-                    onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                    onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = sel ? "#eff6ff" : "transparent"; }}>
-                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 400, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
-                    {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
-                  </div>
-                );
-              })}
-            </div>
+            {forcedFornitoreId ? (
+              // pm_fornitore: read-only
+              <div style={{ padding: "8px 12px", borderRadius: 7, border: "1.5px solid var(--border)", backgroundColor: "#f8fafc", fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>
+                {cliente.fornitore_nome}
+              </div>
+            ) : (
+              // admin: lista selezionabile
+              <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+                {fornitori.map((f) => {
+                  const sel = form.fornitore_id === f.id;
+                  return (
+                    <div key={f.id} onClick={() => { set("fornitore_id", f.id); setSaved(false); }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
+                      onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                      onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = sel ? "#eff6ff" : "transparent"; }}>
+                      <span style={{ fontSize: 13, fontWeight: sel ? 700 : 400, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
+                      {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div onClick={() => set("attivo", !form.attivo)}
@@ -309,6 +343,8 @@ function EditClienteDrawer({ cliente, fornitori, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientiPage() {
+  const { user, isPmFornitore, isAdmin } = useUser();
+
   const [clienti, setClienti]     = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -317,9 +353,15 @@ export default function ClientiPage() {
   const [editing, setEditing]     = useState<Cliente | null>(null);
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
+  // Se pm_fornitore, blocca fornitore al proprio
+  const forcedFornitoreId   = isPmFornitore ? (user?.fornitore_id ?? null) : null;
+  const forcedFornitoreNome = isPmFornitore
+    ? (fornitori.find((f) => f.id === forcedFornitoreId)?.nome ?? null)
+    : null;
+
   const loadData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("cg_clienti")
       .select(`
         id, nome, email, telefono, indirizzo, attivo, fornitore_id,
@@ -328,6 +370,12 @@ export default function ClientiPage() {
       `)
       .order("nome");
 
+    // pm_fornitore vede solo i clienti del proprio fornitore
+    if (isPmFornitore && user?.fornitore_id) {
+      query = query.eq("fornitore_id", user.fornitore_id);
+    }
+
+    const { data, error } = await query;
     if (error) { console.error(error); setLoading(false); return; }
 
     setClienti((data ?? []).map((row) => {
@@ -352,6 +400,7 @@ export default function ClientiPage() {
     loadData();
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = clienti.filter((c) => {
@@ -367,6 +416,9 @@ export default function ClientiPage() {
 
   const attivi   = clienti.filter((c) => c.attivo).length;
   const inattivi = clienti.filter((c) => !c.attivo).length;
+
+  // Nascondi colonna Fornitore se pm_fornitore (vedono solo il proprio)
+  const showFornitoreCol = isAdmin || !isPmFornitore;
 
   return (
     <div>
@@ -392,7 +444,6 @@ export default function ClientiPage() {
             style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", backgroundColor: "transparent" }} />
           {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>}
         </div>
-        {/* Stato tabs */}
         <div style={{ display: "flex", backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
           {([["tutti", "Tutti"], ["attivi", "Attivi"], ["inattivi", "Inattivi"]] as const).map(([val, label]) => (
             <button key={val} onClick={() => setFilterAttivo(val)}
@@ -411,7 +462,7 @@ export default function ClientiPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
-                {["Cliente", "Email", "Fornitore", "Progetti", "Stato", ""].map((h) => (
+                {["Cliente", "Email", ...(showFornitoreCol ? ["Fornitore"] : []), "Progetti", "Stato", ""].map((h) => (
                   <th key={h} style={{ padding: "11px 18px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em", whiteSpace: "nowrap" as const }}>
                     {h}
                   </th>
@@ -420,7 +471,7 @@ export default function ClientiPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>Nessun cliente trovato</td></tr>
+                <tr><td colSpan={showFornitoreCol ? 6 : 5} style={{ padding: "40px", textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>Nessun cliente trovato</td></tr>
               ) : filtered.map((c, i) => (
                 <tr key={c.id}
                   style={{ borderBottom: i < filtered.length - 1 ? "1px solid var(--border-soft)" : "none", cursor: "pointer", transition: "background 0.1s" }}
@@ -433,11 +484,13 @@ export default function ClientiPage() {
                   <td style={{ padding: "14px 18px", fontSize: 13, color: "var(--text-secondary)" }}>
                     {c.email ?? <span style={{ color: "#cbd5e1" }}>—</span>}
                   </td>
-                  <td style={{ padding: "14px 18px" }}>
-                    <span style={{ fontSize: 13, color: "var(--text-secondary)", backgroundColor: "#f1f5f9", padding: "3px 10px", borderRadius: 6, fontWeight: 500 }}>
-                      {c.fornitore_nome}
-                    </span>
-                  </td>
+                  {showFornitoreCol && (
+                    <td style={{ padding: "14px 18px" }}>
+                      <span style={{ fontSize: 13, color: "var(--text-secondary)", backgroundColor: "#f1f5f9", padding: "3px 10px", borderRadius: 6, fontWeight: 500 }}>
+                        {c.fornitore_nome}
+                      </span>
+                    </td>
+                  )}
                   <td style={{ padding: "14px 18px" }}>
                     {c.num_progetti > 0 ? (
                       <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
@@ -463,8 +516,23 @@ export default function ClientiPage() {
         </div>
       )}
 
-      {showNew  && <NewClienteModal onClose={() => setShowNew(false)} onCreated={loadData} />}
-      {editing  && <EditClienteDrawer cliente={editing} fornitori={fornitori} onClose={() => setEditing(null)} onSaved={loadData} />}
+      {showNew && (
+        <NewClienteModal
+          onClose={() => setShowNew(false)}
+          onCreated={loadData}
+          forcedFornitoreId={forcedFornitoreId}
+          forcedFornitoreNome={forcedFornitoreNome}
+        />
+      )}
+      {editing && (
+        <EditClienteDrawer
+          cliente={editing}
+          fornitori={fornitori}
+          onClose={() => setEditing(null)}
+          onSaved={loadData}
+          forcedFornitoreId={forcedFornitoreId}
+        />
+      )}
     </div>
   );
 }
