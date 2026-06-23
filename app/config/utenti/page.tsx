@@ -97,6 +97,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   // pm_fornitore: fornitore fisso al proprio
   const forcedFornitoreId = isPmFornitore ? (user?.fornitore_id ?? null) : null;
+  const [forcedFornitoreNome, setForcedFornitoreNome] = useState<string | null>(null);
 
   // Tipo associazione iniziale
   const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">(
@@ -160,10 +161,14 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   }, [form.nome]);
 
   useEffect(() => {
-    // Fornitori: admin vede tutti, pm_fornitore non ha bisogno (fornitore fisso)
+    // Fornitori: admin vede tutti; pm_fornitore carica solo il proprio per mostrarne il nome
     if (isAdmin) {
       supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
         .then(({ data }) => setFornitori(data ?? []));
+    }
+    if (isPmFornitore && forcedFornitoreId) {
+      supabase.from("cg_fornitori").select("nome").eq("id", forcedFornitoreId).single()
+        .then(({ data }) => setForcedFornitoreNome(data?.nome ?? null));
     }
     // Clienti: pm_fornitore vede solo i clienti del proprio fornitore
     if (isPmFornitore && user?.fornitore_id) {
@@ -219,9 +224,6 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   const sectionTitle = (t: string) => (
     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid var(--border-soft)" }}>{t}</div>
   );
-
-  // Nomi fornitore forzato (per pm_fornitore)
-  const forcedFornitoreNome = isPmFornitore ? (user as { fornitore_nome?: string })?.fornitore_nome ?? null : null;
 
   return (
     <>
