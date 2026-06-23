@@ -74,7 +74,6 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
             style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: c, border: value === c ? "3px solid #2563eb" : "2px solid transparent", cursor: "pointer", outline: "none", padding: 0, boxShadow: value === c ? "0 0 0 2px white, 0 0 0 4px #2563eb" : "none", transition: "all 0.1s" }}
           />
         ))}
-        {/* Custom hex input */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
           <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
             style={{ width: 26, height: 26, borderRadius: "50%", border: "2px solid var(--border)", cursor: "pointer", padding: 0 }} />
@@ -89,16 +88,21 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
 
 function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSaved: () => void; utente?: Utente }) {
   const isEdit = !!utente;
-  const { isAdmin } = useUser();
+  const { isAdmin, isPmFornitore, user } = useUser();
+
   const [fornitori, setFornitori] = useState<OptionRow[]>([]);
   const [clienti, setClienti]     = useState<OptionRow[]>([]);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState<string | null>(null);
-  // Admin può associare solo a Fornitore e obbligatoriamente
+
+  // pm_fornitore: fornitore fisso al proprio
+  const forcedFornitoreId = isPmFornitore ? (user?.fornitore_id ?? null) : null;
+
+  // Tipo associazione iniziale
   const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">(
-    isAdmin && !isEdit ? "fornitore"
+    (isAdmin || isPmFornitore) && !isEdit ? "fornitore"
     : utente?.fornitore_id ? "fornitore"
-    : utente?.cliente_id ? "cliente"
+    : utente?.cliente_id   ? "cliente"
     : "nessuno"
   );
 
@@ -107,7 +111,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
     email:           utente?.email           ?? "",
     ruolo:           (utente?.ruolo ?? "pm_fornitore") as Ruolo,
     attivo:          utente?.attivo          ?? true,
-    fornitore_id:    utente?.fornitore_id    ?? "",
+    fornitore_id:    utente?.fornitore_id    ?? forcedFornitoreId ?? "",
     cliente_id:      utente?.cliente_id      ?? "",
     avatar_iniziali: utente?.avatar_iniziali ?? "",
     avatar_bg:       utente?.avatar_bg       ?? "#2563eb",
@@ -116,33 +120,35 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Ruoli disponibili in base all'associazione e al ruolo dell'utente loggato
+  // Ruoli disponibili per ruolo dell'utente loggato
+  // Admin: solo PM Fornitore
+  // PM Fornitore: tutti tranne Admin
   const ruoliFornitore: { value: Ruolo; label: string }[] = isAdmin
-    ? [{ value: "pm_fornitore", label: "PM Fornitore" }]  // Admin può creare solo PM Fornitore
+    ? [{ value: "pm_fornitore", label: "PM Fornitore" }]
     : [
-        { value: "admin",        label: "Admin" },
         { value: "pm_fornitore", label: "PM Fornitore" },
         { value: "ps_fornitore", label: "PS Fornitore" },
       ];
+
   const ruoliCliente: { value: Ruolo; label: string }[] = [
     { value: "pm_cliente", label: "PM Cliente" },
     { value: "ku_cliente", label: "KU Cliente" },
   ];
+
   const ruoliDisponibili = assocType === "fornitore" ? ruoliFornitore
     : assocType === "cliente" ? ruoliCliente
     : [...ruoliFornitore, ...ruoliCliente];
 
-  // Quando cambia assocType, resetta ruolo a un valore valido
   const handleAssocType = (t: "fornitore" | "cliente" | "nessuno") => {
     setAssocType(t);
     if (t === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
-      setForm((f) => ({ ...f, ruolo: "pm_fornitore", fornitore_id: "", cliente_id: "" }));
+      setForm((f) => ({ ...f, ruolo: "pm_fornitore", fornitore_id: forcedFornitoreId ?? "", cliente_id: "" }));
     } else if (t === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
-      setForm((f) => ({ ...f, ruolo: "pm_cliente", fornitore_id: "", cliente_id: "" }));
+      setForm((f) => ({ ...f, ruolo: "pm_cliente", fornitore_id: forcedFornitoreId ?? "", cliente_id: "" }));
     }
   };
 
-  // Auto-generate iniziali from nome only when creating (not editing)
+  // Auto-generate iniziali from nome only when creating
   useEffect(() => {
     if (!isEdit && form.nome.trim()) {
       const words = form.nome.trim().split(/\s+/);
@@ -154,17 +160,27 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   }, [form.nome]);
 
   useEffect(() => {
-    supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome").then(({ data }) => setFornitori(data ?? []));
-    supabase.from("cg_clienti").select("id, nome").eq("attivo", true).order("nome").then(({ data }) => setClienti(data ?? []));
-  }, []);
+    // Fornitori: admin vede tutti, pm_fornitore non ha bisogno (fornitore fisso)
+    if (isAdmin) {
+      supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
+        .then(({ data }) => setFornitori(data ?? []));
+    }
+    // Clienti: pm_fornitore vede solo i clienti del proprio fornitore
+    if (isPmFornitore && user?.fornitore_id) {
+      supabase.from("cg_clienti").select("id, nome").eq("attivo", true).eq("fornitore_id", user.fornitore_id).order("nome")
+        .then(({ data }) => setClienti(data ?? []));
+    } else if (isAdmin) {
+      supabase.from("cg_clienti").select("id, nome").eq("attivo", true).order("nome")
+        .then(({ data }) => setClienti(data ?? []));
+    }
+  }, [isAdmin, isPmFornitore, user?.fornitore_id]);
 
   const handleSave = async () => {
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
     if (isAdmin && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
-    if (!isAdmin && assocType === "fornitore" && !form.fornitore_id) { setError("Seleziona un fornitore."); return; }
+    if (isPmFornitore && assocType === "fornitore" && !forcedFornitoreId) { setError("Fornitore non trovato nel profilo."); return; }
     if (!isAdmin && assocType === "cliente" && !form.cliente_id) { setError("Seleziona un cliente."); return; }
-    // Validazione ruolo coerente con associazione (solo per non-admin)
     if (!isAdmin && assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Fornitore."); return;
     }
@@ -173,14 +189,17 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
     }
     setSaving(true); setError(null);
 
-    const effectiveAssoc = isAdmin ? "fornitore" : assocType;
+    const effectiveAssoc = (isAdmin || isPmFornitore) ? assocType : assocType;
     const payload = {
       nome:             form.nome.trim(),
       email:            form.email || null,
       ruolo:            form.ruolo,
       attivo:           form.attivo,
-      fornitore_id:     effectiveAssoc === "fornitore" ? form.fornitore_id || null : null,
-      cliente_id:       effectiveAssoc === "cliente"   ? form.cliente_id   || null : null,
+      // pm_fornitore: se assocType è fornitore usa forcedFornitoreId, se cliente lascia null
+      fornitore_id:     effectiveAssoc === "fornitore"
+                          ? (forcedFornitoreId ?? form.fornitore_id || null)
+                          : null,
+      cliente_id:       effectiveAssoc === "cliente" ? form.cliente_id || null : null,
       avatar_iniziali:  form.avatar_iniziali.slice(0, 2).toUpperCase(),
       avatar_bg:        form.avatar_bg,
       avatar_colore:    form.avatar_colore,
@@ -200,6 +219,9 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   const sectionTitle = (t: string) => (
     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid var(--border-soft)" }}>{t}</div>
   );
+
+  // Nomi fornitore forzato (per pm_fornitore)
+  const forcedFornitoreNome = isPmFornitore ? (user as { fornitore_nome?: string })?.fornitore_nome ?? null : null;
 
   return (
     <>
@@ -254,12 +276,10 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
           {/* 2 — Avatar */}
           {sectionTitle("2 · Avatar")}
           <div style={{ display: "flex", gap: 24, marginBottom: 28, alignItems: "flex-start" }}>
-            {/* Preview */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
               <Avatar iniziali={form.avatar_iniziali || "??"} bg={form.avatar_bg} colore={form.avatar_colore} size={64} />
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Anteprima</span>
             </div>
-            {/* Controls */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
                 <label style={labelStyle}>Iniziali (max 2 caratteri)</label>
@@ -274,55 +294,77 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
           {/* 3 — Associazione */}
           {sectionTitle("3 · Associazione")}
-          {isAdmin ? (
-            <div style={{ padding: "10px 14px", backgroundColor: "#eff6ff", borderRadius: 8, fontSize: 13, color: "#1e40af", fontWeight: 500, marginBottom: 16 }}>
-              🏢 Utente associato obbligatoriamente a un Fornitore
-            </div>
-          ) : (
-            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              {(["nessuno", "fornitore", "cliente"] as const).map((t) => (
-                <button key={t} onClick={() => handleAssocType(t)}
-                  style={{ padding: "7px 16px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, fontWeight: assocType === t ? 700 : 500, backgroundColor: assocType === t ? "#eff6ff" : "white", color: assocType === t ? "#2563eb" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", borderColor: assocType === t ? "#2563eb" : "var(--border)" }}>
-                  {t === "nessuno" ? "Nessuna" : t === "fornitore" ? "🏢 Fornitore" : "👤 Cliente"}
-                </button>
-              ))}
-            </div>
+
+          {/* Admin: fornitore obbligatorio, lista selezionabile */}
+          {isAdmin && (
+            <>
+              <div style={{ padding: "10px 14px", backgroundColor: "#eff6ff", borderRadius: 8, fontSize: 13, color: "#1e40af", fontWeight: 500, marginBottom: 16 }}>
+                🏢 Utente associato obbligatoriamente a un Fornitore
+              </div>
+              <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
+                <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>Seleziona il fornitore</div>
+                {fornitori.map((f) => {
+                  const sel = form.fornitore_id === f.id;
+                  return (
+                    <div key={f.id} onClick={() => set("fornitore_id", f.id)}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
+                      onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                      onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}>
+                      <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
+                      {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
-          {assocType === "fornitore" && (
-            <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>Seleziona il fornitore</div>
-              {fornitori.map((f) => {
-                const sel = form.fornitore_id === f.id;
-                return (
-                  <div key={f.id} onClick={() => set("fornitore_id", f.id)}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
-                    onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                    onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}>
-                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{f.nome}</span>
-                    {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          {/* PM Fornitore: può scegliere fornitore (fisso) o cliente */}
+          {isPmFornitore && (
+            <>
+              {/* Tab selezione tipo associazione */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                {(["fornitore", "cliente"] as const).map((t) => (
+                  <button key={t} onClick={() => handleAssocType(t)}
+                    style={{ padding: "7px 16px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, fontWeight: assocType === t ? 700 : 500, backgroundColor: assocType === t ? "#eff6ff" : "white", color: assocType === t ? "#2563eb" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", borderColor: assocType === t ? "#2563eb" : "var(--border)" }}>
+                    {t === "fornitore" ? "🏢 Fornitore" : "👤 Cliente"}
+                  </button>
+                ))}
+              </div>
 
-          {assocType === "cliente" && (
-            <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>Seleziona il cliente</div>
-              {clienti.map((c) => {
-                const sel = form.cliente_id === c.id;
-                return (
-                  <div key={c.id} onClick={() => set("cliente_id", c.id)}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
-                    onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
-                    onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}>
-                    <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{c.nome}</span>
-                    {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+              {/* Fornitore fisso — non modificabile */}
+              {assocType === "fornitore" && (
+                <div style={{ padding: "10px 14px", borderRadius: 8, border: "1.5px solid var(--border)", backgroundColor: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                    {forcedFornitoreNome ?? forcedFornitoreId ?? "—"}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>Assegnato automaticamente</span>
+                </div>
+              )}
+
+              {/* Lista clienti filtrata per il proprio fornitore */}
+              {assocType === "cliente" && (
+                <div style={{ border: "1.5px solid var(--border)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
+                  <div style={{ backgroundColor: "#f8fafc", padding: "8px 12px", borderBottom: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-muted)" }}>
+                    Seleziona il cliente (solo clienti del tuo fornitore)
                   </div>
-                );
-              })}
-            </div>
+                  {clienti.length === 0 ? (
+                    <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "var(--text-muted)" }}>Nessun cliente disponibile</div>
+                  ) : clienti.map((c) => {
+                    const sel = form.cliente_id === c.id;
+                    return (
+                      <div key={c.id} onClick={() => set("cliente_id", c.id)}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", cursor: "pointer", backgroundColor: sel ? "#eff6ff" : "transparent", borderBottom: "1px solid var(--border-soft)" }}
+                        onMouseEnter={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "#f8fafc"; }}
+                        onMouseLeave={(e) => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}>
+                        <span style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? "#1e40af" : "var(--text-primary)" }}>{c.nome}</span>
+                        {sel && <Check size={14} color="#2563eb" strokeWidth={3} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
 
           {error && <div style={{ marginTop: 14, padding: "10px 14px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 13, color: "#dc2626" }}>{error}</div>}
@@ -344,6 +386,8 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function UtentiPage() {
+  const { isPmFornitore, user } = useUser();
+
   const [utenti, setUtenti]     = useState<Utente[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
@@ -351,7 +395,6 @@ export default function UtentiPage() {
   const [editing, setEditing]       = useState<Utente | null>(null);
   const [filterRuolo, setFilterRuolo]   = useState<Ruolo | "tutti">("tutti");
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
-
   const [inviting, setInviting] = useState<string | null>(null);
 
   const handleInvite = async (u: Utente) => {
@@ -371,18 +414,54 @@ export default function UtentiPage() {
 
   const loadData = async () => {
     setLoading(true);
+    let query = supabase
+      .from("cg_utenti")
+      .select("*, cg_fornitori(nome, created_at), cg_clienti(nome)")
+      .order("nome");
+
+    // pm_fornitore vede solo utenti del proprio fornitore o dei propri clienti
+    if (isPmFornitore && user?.fornitore_id) {
+      query = query.or(`fornitore_id.eq.${user.fornitore_id},cliente_id.in.(${
+        // subquery inline non supportata — carichiamo tutti e filtriamo client-side
+        // il filtro viene applicato dopo sotto
+        ""
+      })`);
+      // Nota: il filtro cliente viene applicato client-side dopo aver caricato i clienti
+    }
+
     const { data, error } = await supabase
       .from("cg_utenti")
       .select("*, cg_fornitori(nome, created_at), cg_clienti(nome)")
       .order("nome");
+
     if (error) { console.error(error); setLoading(false); return; }
-    setUtenti((data ?? []).map((u) => ({
+
+    let rows = (data ?? []).map((u) => ({
       ...u,
       fornitore_nome:       (u.cg_fornitori as unknown as { nome: string; created_at: string } | null)?.nome ?? null,
       fornitore_created_at: (u.cg_fornitori as unknown as { nome: string; created_at: string } | null)?.created_at ?? null,
       cliente_nome:         (u.cg_clienti   as unknown as { nome: string } | null)?.nome ?? null,
       auth_user_id:         u.auth_user_id ?? null,
-    })));
+    }));
+
+    // pm_fornitore: filtra client-side — vede solo utenti del proprio fornitore
+    // o utenti (pm_cliente/ku_cliente) associati a clienti del proprio fornitore.
+    // Per i clienti non abbiamo fornitore_id sull'utente, quindi carichiamo i clienti del fornitore
+    // e filtriamo per cliente_id.
+    if (isPmFornitore && user?.fornitore_id) {
+      const { data: clientiFornitore } = await supabase
+        .from("cg_clienti")
+        .select("id")
+        .eq("fornitore_id", user.fornitore_id);
+      const clientiIds = new Set((clientiFornitore ?? []).map((c: { id: string }) => c.id));
+
+      rows = rows.filter((u) =>
+        u.fornitore_id === user.fornitore_id ||
+        (u.cliente_id && clientiIds.has(u.cliente_id))
+      );
+    }
+
+    setUtenti(rows);
     setLoading(false);
   };
 
@@ -398,6 +477,11 @@ export default function UtentiPage() {
     const matchAttivo = filterAttivo === "tutti" ? true : filterAttivo === "attivi" ? u.attivo : !u.attivo;
     return matchSearch && matchRuolo && matchAttivo;
   });
+
+  // Tab ruoli: pm_fornitore non vede "Admin"
+  const ruoloTabs: [string, string][] = isPmFornitore
+    ? [["tutti", "Tutti"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]]
+    : [["tutti", "Tutti"], ["admin", "Admin"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]];
 
   return (
     <div>
@@ -417,23 +501,20 @@ export default function UtentiPage() {
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" as const }}>
-        {/* Search */}
         <div style={{ flex: 1, minWidth: 240, backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <Search size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
           <input type="text" placeholder="Cerca per nome, email o associazione..." value={search} onChange={(e) => setSearch(e.target.value)}
             style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", backgroundColor: "transparent" }} />
           {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>}
         </div>
-        {/* Ruolo tabs */}
         <div style={{ display: "flex", backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-          {([["tutti", "Tutti"], ["admin", "Admin"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]] as const).map(([val, label]) => (
+          {ruoloTabs.map(([val, label], i) => (
             <button key={val} onClick={() => setFilterRuolo(val as Ruolo | "tutti")}
-              style={{ padding: "8px 12px", border: "none", borderRight: val !== "ku_cliente" ? "1px solid var(--border)" : "none", fontSize: 12, fontWeight: filterRuolo === val ? 700 : 500, color: filterRuolo === val ? "#2563eb" : "var(--text-secondary)", backgroundColor: filterRuolo === val ? "#eff6ff" : "transparent", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}>
+              style={{ padding: "8px 12px", border: "none", borderRight: i < ruoloTabs.length - 1 ? "1px solid var(--border)" : "none", fontSize: 12, fontWeight: filterRuolo === val ? 700 : 500, color: filterRuolo === val ? "#2563eb" : "var(--text-secondary)", backgroundColor: filterRuolo === val ? "#eff6ff" : "transparent", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}>
               {label}
             </button>
           ))}
         </div>
-        {/* Stato tabs */}
         <div style={{ display: "flex", backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
           {([["tutti", "Tutti"], ["attivi", "Attivi"], ["inattivi", "Inattivi"]] as const).map(([val, label]) => (
             <button key={val} onClick={() => setFilterAttivo(val)}
@@ -450,9 +531,7 @@ export default function UtentiPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)", fontSize: 14 }}>Nessun utente trovato</div>
       ) : (() => {
-        // Raggruppa per fornitore (null = clienti/nessuno)
         const groups = new Map<string, { label: string; createdAt: string | null; utenti: Utente[] }>();
-
         filtered.forEach((u) => {
           const key = u.fornitore_nome ?? (u.cliente_nome ? `__cliente__${u.cliente_nome}` : "__nessuno__");
           if (!groups.has(key)) {
@@ -469,7 +548,6 @@ export default function UtentiPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {Array.from(groups.entries()).map(([key, group]) => (
               <div key={key} style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-                {/* Group header */}
                 <div style={{ padding: "12px 20px", backgroundColor: key.startsWith("__") ? "#f8fafc" : "#f0f4ff", borderBottom: "1px solid var(--border-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
@@ -486,7 +564,6 @@ export default function UtentiPage() {
                     </span>
                   )}
                 </div>
-                {/* Users table */}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
