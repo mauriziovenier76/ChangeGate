@@ -197,7 +197,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
       attivo:           form.attivo,
       // pm_fornitore: se assocType è fornitore usa forcedFornitoreId, se cliente lascia null
       fornitore_id:     effectiveAssoc === "fornitore"
-                          ? (forcedFornitoreId ?? form.fornitore_id || null)
+                          ? ((forcedFornitoreId ?? form.fornitore_id) || null)
                           : null,
       cliente_id:       effectiveAssoc === "cliente" ? form.cliente_id || null : null,
       avatar_iniziali:  form.avatar_iniziali.slice(0, 2).toUpperCase(),
