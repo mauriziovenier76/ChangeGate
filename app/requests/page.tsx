@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronRight, Plus, Search, X, Calendar, Clock, User, AlignLeft, Filter, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -496,7 +497,7 @@ function GridPicker({ label, columns, rows, selected, onSelect, placeholder, emp
   );
 }
 
-function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClose: () => void; onCreated: () => void; preClienteId?: string; preProgettoId?: string }) {
+function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId, forcedFornitoreId }: { onClose: () => void; onCreated: () => void; preClienteId?: string; preProgettoId?: string; forcedFornitoreId?: string | null }) {
   const [clienti, setClienti]     = useState<ClientRow[]>([]);
   const [progetti, setProgetti]   = useState<ProjectRow[]>([]);
   const [team, setTeam]           = useState<TeamRow[]>([]);
@@ -520,14 +521,15 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
     prod_val_data: "", prod_val_utente: "",
   });
 
-  // Load clienti on mount
+  // Load clienti on mount — filtered by fornitore if pm_fornitore
   useEffect(() => {
-    supabase.from("cg_clienti").select("id, nome, cg_fornitori(nome)").eq("attivo", true).order("nome")
-      .then(({ data }) => setClienti((data ?? []).map((c) => ({
+    let q = supabase.from("cg_clienti").select("id, nome, cg_fornitori(nome)").eq("attivo", true).order("nome");
+    if (forcedFornitoreId) q = (q as typeof q).eq("fornitore_id", forcedFornitoreId);
+    q.then(({ data }) => setClienti((data ?? []).map((c) => ({
         id: c.id, nome: c.nome,
         fornitore_nome: (c.cg_fornitori as unknown as { nome: string } | null)?.nome ?? "",
       }))));
-  }, []);
+  }, [forcedFornitoreId]);
 
   // Load progetti when cliente changes
   useEffect(() => {
@@ -660,17 +662,34 @@ function NewCRModal({ onClose, onCreated, preClienteId, preProgettoId }: { onClo
               emptyText="Nessun cliente disponibile"
             />
 
-            {/* ── Progetti grid ── */}
-            <GridPicker
-              label="Progetto"
-              columns={["Nome"]}
-              rows={progetti.map((p) => ({ id: p.id, cells: [p.nome] }))}
-              selected={selectedProgetto}
-              onSelect={setSelectedProgetto}
-              placeholder="Filtra progetti..."
-              emptyText={selectedCliente ? "Nessun progetto per questo cliente" : "Seleziona prima un cliente"}
-              disabled={!selectedCliente}
-            />
+            {/* ── Progetti grid — obbligatorio, non modificabile dopo selezione ── */}
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>
+                Progetto <span style={{ color: "#dc2626" }}>*</span>
+                {selectedProgetto && <span style={{ marginLeft: 8, fontSize: 11, color: "#059669", fontWeight: 700, textTransform: "none" as const }}>✓ selezionato — non modificabile</span>}
+              </div>
+              {selectedProgetto ? (
+                // Progetto selezionato: mostra read-only, non deselezionabile
+                <div style={{ padding: "10px 14px", borderRadius: 8, border: "1.5px solid #bbf7d0", backgroundColor: "#f0fdf4", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Check size={14} color="#059669" strokeWidth={3} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#065f46" }}>
+                    {progetti.find((p) => p.id === selectedProgetto)?.nome ?? selectedProgetto}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#6ee7b7", marginLeft: "auto" }}>Bloccato</span>
+                </div>
+              ) : (
+                <GridPicker
+                  label=""
+                  columns={["Nome"]}
+                  rows={progetti.map((p) => ({ id: p.id, cells: [p.nome] }))}
+                  selected={selectedProgetto}
+                  onSelect={setSelectedProgetto}
+                  placeholder="Filtra progetti..."
+                  emptyText={selectedCliente ? "Nessun progetto per questo cliente" : "Seleziona prima un cliente"}
+                  disabled={!selectedCliente}
+                />
+              )}
+            </div>
           </div>
 
           {/* ── Sezione 2: Dettagli CR ── */}
@@ -958,6 +977,7 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
+  const { isPmFornitore, user } = useUser();
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
@@ -978,7 +998,7 @@ export default function RequestsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("cg_change_requests")
       .select(`
         id, codice, titolo, stato, priorita, stima_ore, data_inizio, data_fine, descrizione, note_cliente, created_at,
@@ -988,10 +1008,14 @@ export default function RequestsPage() {
         prod_prev_ore, prod_prev_da, prod_prev_a,
         prod_eff_ore, prod_eff_da, prod_eff_a,
         prod_val_data, prod_val_utente,
-        cg_progetti ( id, nome, codice, cg_clienti ( id, nome ) ),
+        cg_progetti!inner ( id, nome, codice, cg_clienti!inner ( id, nome, fornitore_id ) ),
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
       .order("created_at", { ascending: false });
+    if (isPmFornitore && user?.fornitore_id) {
+      query = query.eq("cg_progetti.cg_clienti.fornitore_id", user.fornitore_id);
+    }
+    const { data, error } = await query;
 
     if (error) { console.error(error); setLoading(false); return; }
 
@@ -1205,7 +1229,7 @@ export default function RequestsPage() {
       {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} onSaved={loadData} />}
 
       {/* New CR Modal */}
-      {showNewCR && <NewCRModal onClose={() => { setShowNewCR(false); setPreSelected(null); }} onCreated={loadData} preClienteId={preSelected?.clienteId} preProgettoId={preSelected?.progettoId} />}
+      {showNewCR && <NewCRModal onClose={() => { setShowNewCR(false); setPreSelected(null); }} onCreated={loadData} preClienteId={preSelected?.clienteId} preProgettoId={preSelected?.progettoId} forcedFornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />}
     </div>
   );
 }
