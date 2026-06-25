@@ -497,7 +497,11 @@ export default function ProgettiPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {{
+    if (isPmFornitore && !user?.fornitore_id) return;
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }}, [user?.fornitore_id, isPmFornitore]);
 
   const allClienti = Array.from(new Set(progetti.map((p) => p.cliente_nome))).sort();
   const allStati   = ["Attivo", "Concluso"];

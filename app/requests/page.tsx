@@ -1069,7 +1069,11 @@ export default function RequestsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (isPmFornitore && !user?.fornitore_id) return; // attendi che user sia caricato
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.fornitore_id, isPmFornitore]);
 
   const allClients  = Array.from(new Set(projects.map((p) => p.client))).sort();
   const allStatuses: CRStatus[] = ["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"];

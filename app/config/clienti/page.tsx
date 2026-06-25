@@ -397,11 +397,12 @@ export default function ClientiPage() {
   };
 
   useEffect(() => {
+    if (isPmFornitore && !user?.fornitore_id) return;
     loadData();
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.fornitore_id, isPmFornitore]);
 
   const filtered = clienti.filter((c) => {
     const matchSearch = !search ||

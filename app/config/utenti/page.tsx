@@ -467,7 +467,11 @@ export default function UtentiPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {{
+    if (isPmFornitore && !user?.fornitore_id) return;
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }}, [user?.fornitore_id, isPmFornitore]);
 
   const filtered = utenti.filter((u) => {
     const matchSearch = !search ||
