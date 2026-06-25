@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus, X, Search, Check, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -128,7 +129,7 @@ function GridPicker({ label, columns, rows, selected, onSelect, placeholder, emp
 
 // ─── New Progetto Modal ───────────────────────────────────────────────────────
 
-function NewProgettoModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function NewProgettoModal({ onClose, onCreated, forcedFornitoreId }: { onClose: () => void; onCreated: () => void; forcedFornitoreId?: string | null }) {
   const [clienti, setClienti]   = useState<ClienteRow[]>([]);
   const [team, setTeam]         = useState<TeamRow[]>([]);
   const [selectedCliente, setSelectedCliente] = useState("");
@@ -137,12 +138,13 @@ function NewProgettoModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const [form, setForm] = useState({ nome: "", descrizione: "", pm_id: "", attivo: true });
 
   useEffect(() => {
-    supabase.from("cg_clienti").select("id, nome, cg_fornitori(nome)").eq("attivo", true).order("nome")
-      .then(({ data }) => setClienti((data ?? []).map((c) => ({
+    let q = supabase.from("cg_clienti").select("id, nome, cg_fornitori(nome)").eq("attivo", true).order("nome");
+    if (forcedFornitoreId) q = (q as typeof q).eq("fornitore_id", forcedFornitoreId);
+    q.then(({ data }) => setClienti((data ?? []).map((c) => ({
         id: c.id, nome: c.nome,
         fornitore_nome: (c.cg_fornitori as unknown as { nome: string } | null)?.nome ?? "",
       }))));
-  }, []);
+  }, [forcedFornitoreId]);
 
   useEffect(() => {
     setForm((f) => ({ ...f, pm_id: "" }));
@@ -448,6 +450,7 @@ function EditProgettoDrawer({ progetto, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProgettiPage() {
+  const { isPmFornitore, user } = useUser();
   const [progetti, setProgetti]   = useState<Progetto[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -458,16 +461,19 @@ export default function ProgettiPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("cg_progetti")
       .select(`
         id, nome, descrizione, attivo, cliente_id,
-        cg_clienti ( nome ),
+        cg_clienti!inner ( nome, fornitore_id ),
         cg_change_requests ( id, stato,
           pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
         )
-      `)
-      .order("nome");
+      `);
+    if (isPmFornitore && user?.fornitore_id) {
+      query = query.eq("cg_clienti.fornitore_id", user.fornitore_id);
+    }
+    const { data, error } = await query.order("nome");
 
     if (error) { console.error(error); setLoading(false); return; }
 
@@ -566,7 +572,7 @@ export default function ProgettiPage() {
         </div>
       )}
 
-      {showNew  && <NewProgettoModal onClose={() => setShowNew(false)} onCreated={loadData} />}
+      {showNew  && <NewProgettoModal onClose={() => setShowNew(false)} onCreated={loadData} forcedFornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />}
       {editing  && <EditProgettoDrawer progetto={editing} onClose={() => setEditing(null)} onSaved={loadData} />}
     </div>
   );
