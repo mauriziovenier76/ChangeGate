@@ -343,7 +343,7 @@ function EditClienteDrawer({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientiPage() {
-  const { user, isPmFornitore, isAdmin } = useUser();
+  const { user, isPmFornitore, isAdmin, loading: userLoading } = useUser();
 
   const [clienti, setClienti]     = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
@@ -397,12 +397,14 @@ export default function ClientiPage() {
   };
 
   useEffect(() => {
+    if (userLoading) return;
     if (isPmFornitore && !user?.fornitore_id) return;
+    setClienti([]);
     loadData();
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore]);
 
   const filtered = clienti.filter((c) => {
     const matchSearch = !search ||
@@ -420,6 +422,8 @@ export default function ClientiPage() {
 
   // Nascondi colonna Fornitore se pm_fornitore (vedono solo il proprio)
   const showFornitoreCol = isAdmin || !isPmFornitore;
+
+  if (userLoading) return null;
 
   return (
     <div>

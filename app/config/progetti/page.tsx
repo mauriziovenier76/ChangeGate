@@ -450,7 +450,7 @@ function EditProgettoDrawer({ progetto, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProgettiPage() {
-  const { isPmFornitore, user } = useUser();
+  const { isPmFornitore, user, loading: userLoading } = useUser();
   const [progetti, setProgetti]   = useState<Progetto[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -497,11 +497,13 @@ export default function ProgettiPage() {
     setLoading(false);
   };
 
-  useEffect(() => {{
+  useEffect(() => {
+    if (userLoading) return;
     if (isPmFornitore && !user?.fornitore_id) return;
+    setProgetti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }}, [user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore]);
 
   const allClienti = Array.from(new Set(progetti.map((p) => p.cliente_nome))).sort();
   const allStati   = ["Attivo", "Concluso"];
@@ -525,6 +527,8 @@ export default function ProgettiPage() {
   }));
 
   const totalActive = progetti.filter((p) => p.attivo).length;
+
+  if (userLoading) return null;
 
   return (
     <div>

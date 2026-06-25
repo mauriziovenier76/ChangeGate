@@ -977,7 +977,7 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
-  const { isPmFornitore, user } = useUser();
+  const { isPmFornitore, user, loading: userLoading } = useUser();
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
@@ -1070,10 +1070,12 @@ export default function RequestsPage() {
   };
 
   useEffect(() => {
-    if (isPmFornitore && !user?.fornitore_id) return; // attendi che user sia caricato
+    if (userLoading) return; // UserContext non ancora pronto
+    if (isPmFornitore && !user?.fornitore_id) return;
+    setProjects([]); // azzera dati prima di caricare quelli del nuovo utente
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore]);
 
   const allClients  = Array.from(new Set(projects.map((p) => p.client))).sort();
   const allStatuses: CRStatus[] = ["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"];
@@ -1096,6 +1098,9 @@ export default function RequestsPage() {
 
   const totalCRs = projects.reduce((s, p) => s + p.crs.length, 0);
   const COL_HEADERS = ["ID", "TITOLO", "STATO", "PRIORITÀ", "STIMA", "INIZIO", "FINE", "ASSEGNATO A"];
+
+  // Blocca il render finché UserContext non è pronto — evita flash di dati altrui
+  if (userLoading) return null;
 
   return (
     <div>

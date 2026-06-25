@@ -388,7 +388,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function UtentiPage() {
-  const { isPmFornitore, user } = useUser();
+  const { isPmFornitore, user, loading: userLoading } = useUser();
 
   const [utenti, setUtenti]     = useState<Utente[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -467,11 +467,13 @@ export default function UtentiPage() {
     setLoading(false);
   };
 
-  useEffect(() => {{
+  useEffect(() => {
+    if (userLoading) return;
     if (isPmFornitore && !user?.fornitore_id) return;
+    setUtenti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }}, [user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore]);
 
   const filtered = utenti.filter((u) => {
     const matchSearch = !search ||
@@ -488,6 +490,8 @@ export default function UtentiPage() {
   const ruoloTabs: [string, string][] = isPmFornitore
     ? [["tutti", "Tutti"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]]
     : [["tutti", "Tutti"], ["admin", "Admin"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]];
+
+  if (userLoading) return null;
 
   return (
     <div>
