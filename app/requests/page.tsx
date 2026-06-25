@@ -975,18 +975,20 @@ export default function RequestsPage() {
 
   const openNewCR = async (project?: Project) => {
     // Controlla prerequisiti: deve esistere almeno un cliente e un progetto
-    const { count: clientiCount } = await supabase
-      .from("cg_clienti")
-      .select("id", { count: "exact", head: true })
-      .eq("attivo", true);
+    // Per pm_fornitore filtra per il proprio fornitore
+    let clientiQ = supabase.from("cg_clienti").select("id", { count: "exact", head: true }).eq("attivo", true);
+    if (isPmFornitore && user?.fornitore_id) clientiQ = (clientiQ as typeof clientiQ).eq("fornitore_id", user.fornitore_id);
+    const { count: clientiCount } = await clientiQ;
     if (!clientiCount || clientiCount === 0) {
       setPrereqAlert("cliente");
       return;
     }
-    const { count: progettiCount } = await supabase
+    let progettiQ = supabase
       .from("cg_progetti")
-      .select("id", { count: "exact", head: true })
+      .select("id, cg_clienti!inner(fornitore_id)", { count: "exact", head: true })
       .eq("attivo", true);
+    if (isPmFornitore && user?.fornitore_id) progettiQ = (progettiQ as typeof progettiQ).eq("cg_clienti.fornitore_id", user.fornitore_id);
+    const { count: progettiCount } = await progettiQ;
     if (!progettiCount || progettiCount === 0) {
       setPrereqAlert("progetto");
       return;
