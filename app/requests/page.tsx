@@ -960,6 +960,7 @@ export default function RequestsPage() {
   const [selectedCR, setSelectedCR] = useState<{ cr: CR; project: Project } | null>(null);
   const [showNewCR, setShowNewCR]   = useState(false);
   const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
+  const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
   const [showTest, setShowTest] = useState(true);
   const [showProd, setShowProd] = useState(true);
   const [selectedCRIds, setSelectedCRIds] = useState<Set<string>>(new Set());
@@ -972,7 +973,24 @@ export default function RequestsPage() {
     });
   };
 
-  const openNewCR = (project?: Project) => {
+  const openNewCR = async (project?: Project) => {
+    // Controlla prerequisiti: deve esistere almeno un cliente e un progetto
+    const { count: clientiCount } = await supabase
+      .from("cg_clienti")
+      .select("id", { count: "exact", head: true })
+      .eq("attivo", true);
+    if (!clientiCount || clientiCount === 0) {
+      setPrereqAlert("cliente");
+      return;
+    }
+    const { count: progettiCount } = await supabase
+      .from("cg_progetti")
+      .select("id", { count: "exact", head: true })
+      .eq("attivo", true);
+    if (!progettiCount || progettiCount === 0) {
+      setPrereqAlert("progetto");
+      return;
+    }
     setPreSelected(project ? { clienteId: project.clientId, progettoId: project.id } : null);
     setShowNewCR(true);
   };
@@ -1236,6 +1254,34 @@ export default function RequestsPage() {
 
       {/* Drawer */}
       {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} onSaved={loadData} />}
+
+      {/* Prerequisiti mancanti */}
+      {prereqAlert && (
+        <>
+          <div onClick={() => setPrereqAlert(null)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.4)", zIndex: 60, backdropFilter: "blur(3px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "min(460px, 95vw)", backgroundColor: "white", borderRadius: 16, boxShadow: "0 24px 60px rgba(0,0,0,0.2)", zIndex: 70, overflow: "hidden" }}>
+            <div style={{ padding: "24px 28px 20px", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 20 }}>⚠️</span>
+                </div>
+                <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Prerequisito mancante</h2>
+              </div>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0, lineHeight: 1.6 }}>
+                {prereqAlert === "cliente"
+                  ? "Non è possibile creare una CR senza aver prima creato almeno un Cliente e un Progetto attivi. Vai in Configurazione → Clienti per aggiungere il primo cliente."
+                  : "Non è possibile creare una CR senza aver prima creato almeno un Progetto attivo. Vai in Configurazione → Progetti per aggiungere il primo progetto."}
+              </p>
+            </div>
+            <div style={{ padding: "16px 28px", display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setPrereqAlert(null)}
+                style={{ padding: "9px 24px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer", fontFamily: "inherit" }}>
+                Ho capito
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* New CR Modal */}
       {showNewCR && <NewCRModal onClose={() => { setShowNewCR(false); setPreSelected(null); }} onCreated={loadData} preClienteId={preSelected?.clienteId} preProgettoId={preSelected?.progettoId} forcedFornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />}
