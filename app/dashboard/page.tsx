@@ -162,7 +162,7 @@ function AdminDashboard() {
 
 // ─── Standard Dashboard (PM Fornitore, PS, PM Cliente, KU) ───────────────────
 
-function StandardDashboard() {
+function StandardDashboard({ fornitoreId }: { fornitoreId?: string | null }) {
   const [stats, setStats]       = useState({ aperte: 0, approvazione: 0, completateMese: 0, scadute: 0 });
   const [recent, setRecent]     = useState<RecentCR[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
@@ -172,10 +172,12 @@ function StandardDashboard() {
     async function load() {
       const today = new Date();
       const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-      const { data } = await supabase
+      let q = supabase
         .from("cg_change_requests")
-        .select(`id, codice, titolo, stato, created_at, data_fine, cg_progetti ( cg_clienti ( nome ) )`)
+        .select(`id, codice, titolo, stato, created_at, data_fine, cg_progetti!inner ( cg_clienti!inner ( nome, fornitore_id ) )`)
         .order("created_at", { ascending: false });
+      if (fornitoreId) q = (q as typeof q).eq("cg_progetti.cg_clienti.fornitore_id", fornitoreId);
+      const { data } = await q;
 
       const rows = data ?? [];
       const aperte         = rows.filter((r) => r.stato !== "Completata").length;
@@ -290,7 +292,7 @@ function StandardDashboard() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { isAdmin, loading } = useUser();
-  if (loading) return <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)" }}>Caricamento...</div>;
-  return isAdmin ? <AdminDashboard /> : <StandardDashboard />;
+  const { isAdmin, isPmFornitore, user, loading } = useUser();
+  if (loading) return null;
+  return isAdmin ? <AdminDashboard /> : <StandardDashboard fornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />;
 }
