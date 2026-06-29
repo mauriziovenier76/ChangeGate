@@ -11,13 +11,13 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
 
-type NavChild = { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; };
-type NavItem  = { label: string; href?: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; children?: NavChild[]; };
+type NavChild = { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; };
+type NavItem  = { label: string; href?: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; children?: NavChild[]; };
 
 export default function Topbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { user, isAdmin, isPmFornitore } = useUser();
+  const { user, isAdmin, isPmFornitore, isPsFornitore } = useUser();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUser, setOpenUser]         = useState(false);
   const navRef  = useRef<HTMLDivElement>(null);
@@ -48,13 +48,13 @@ export default function Topbar() {
         { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} />,  hideForAdmin: true },
         { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} />, hideForAdmin: true },
         { label: "Fornitori", href: "/config/fornitori", icon: <Users size={14} />,      hideForPmFornitore: true },
-        { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} /> },
+        { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} />, hideForPsFornitore: true },
       ],
     },
   ];
 
-  const shouldHide = (item: { hideForAdmin?: boolean; hideForPmFornitore?: boolean }) =>
-    (isAdmin && item.hideForAdmin) || (isPmFornitore && item.hideForPmFornitore);
+  const shouldHide = (item: { hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean }) =>
+    (isAdmin && item.hideForAdmin) || (isPmFornitore && item.hideForPmFornitore) || (isPsFornitore && item.hideForPsFornitore);
 
   const nav = allNav.filter((item) => !shouldHide(item));
 
