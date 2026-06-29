@@ -162,7 +162,7 @@ function AdminDashboard() {
 
 // ─── Standard Dashboard (PM Fornitore, PS, PM Cliente, KU) ───────────────────
 
-function StandardDashboard({ fornitoreId }: { fornitoreId?: string | null }) {
+function StandardDashboard({ fornitoreId, clienteId }: { fornitoreId?: string | null; clienteId?: string | null }) {
   const [stats, setStats]       = useState({ aperte: 0, approvazione: 0, completateMese: 0, scadute: 0 });
   const [recent, setRecent]     = useState<RecentCR[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
@@ -177,6 +177,7 @@ function StandardDashboard({ fornitoreId }: { fornitoreId?: string | null }) {
         .select(`id, codice, titolo, stato, created_at, data_fine, cg_progetti!inner ( cg_clienti!inner ( nome, fornitore_id ) )`)
         .order("created_at", { ascending: false });
       if (fornitoreId) q = (q as typeof q).eq("cg_progetti.cg_clienti.fornitore_id", fornitoreId);
+      if (clienteId) q = (q as typeof q).eq("cg_progetti.cliente_id", clienteId);
       const { data } = await q;
 
       const rows = data ?? [];
@@ -292,7 +293,7 @@ function StandardDashboard({ fornitoreId }: { fornitoreId?: string | null }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { isAdmin, isPmFornitore, isPsFornitore, user, loading } = useUser();
+  const { isAdmin, isPmFornitore, isPsFornitore, isKuCliente, user, loading } = useUser();
   if (loading) return null;
-  return isAdmin ? <AdminDashboard /> : <StandardDashboard fornitoreId={(isPmFornitore || isPsFornitore) ? (user?.fornitore_id ?? null) : null} />;
+  return isAdmin ? <AdminDashboard /> : <StandardDashboard fornitoreId={(isPmFornitore || isPsFornitore) ? (user?.fornitore_id ?? null) : null} clienteId={isKuCliente ? (user?.cliente_id ?? null) : null} />;
 }
