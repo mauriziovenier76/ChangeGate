@@ -343,7 +343,7 @@ function EditClienteDrawer({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientiPage() {
-  const { user, isPmFornitore, isAdmin, loading: userLoading } = useUser();
+  const { user, isPmFornitore, isPsFornitore, isAdmin, loading: userLoading } = useUser();
 
   const [clienti, setClienti]     = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
@@ -354,7 +354,7 @@ export default function ClientiPage() {
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
   // Se pm_fornitore, blocca fornitore al proprio
-  const forcedFornitoreId   = isPmFornitore ? (user?.fornitore_id ?? null) : null;
+  const forcedFornitoreId   = (isPmFornitore || isPsFornitore) ? (user?.fornitore_id ?? null) : null;
   const forcedFornitoreNome = isPmFornitore
     ? (fornitori.find((f) => f.id === forcedFornitoreId)?.nome ?? null)
     : null;
@@ -370,8 +370,8 @@ export default function ClientiPage() {
       `)
       .order("nome");
 
-    // pm_fornitore vede solo i clienti del proprio fornitore
-    if (isPmFornitore && user?.fornitore_id) {
+    // pm_fornitore e ps_fornitore vedono solo i clienti del proprio fornitore
+    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
       query = query.eq("fornitore_id", user.fornitore_id);
     }
 
@@ -398,13 +398,13 @@ export default function ClientiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (isPmFornitore && !user?.fornitore_id) return;
+    if ((isPmFornitore || isPsFornitore) && !user?.fornitore_id) return;
     setClienti([]);
     loadData();
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
 
   const filtered = clienti.filter((c) => {
     const matchSearch = !search ||
@@ -421,7 +421,7 @@ export default function ClientiPage() {
   const inattivi = clienti.filter((c) => !c.attivo).length;
 
   // Nascondi colonna Fornitore se pm_fornitore (vedono solo il proprio)
-  const showFornitoreCol = isAdmin || !isPmFornitore;
+  const showFornitoreCol = isAdmin || (!isPmFornitore && !isPsFornitore);
 
   if (userLoading) return null;
 
@@ -435,10 +435,12 @@ export default function ClientiPage() {
             {loading ? "Caricamento..." : `${attivi} attivi · ${inattivi} inattivi · ${clienti.length} totali`}
           </p>
         </div>
-        <button onClick={() => setShowNew(true)}
-          style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
-          <Plus size={15} />Nuovo Cliente
-        </button>
+        {!isPsFornitore && (
+          <button onClick={() => setShowNew(true)}
+            style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
+            <Plus size={15} />Nuovo Cliente
+          </button>
+        )}
       </div>
 
       {/* Search + filter bar */}
@@ -510,9 +512,11 @@ export default function ClientiPage() {
                     </span>
                   </td>
                   <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                    <button onClick={() => setEditing(c)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
-                      Modifica
-                    </button>
+                    {!isPsFornitore && (
+                      <button onClick={() => setEditing(c)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                        Modifica
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
