@@ -250,8 +250,8 @@ function NewProgettoModal({ onClose, onCreated, forcedFornitoreId }: { onClose: 
 
 // ─── Client group row ─────────────────────────────────────────────────────────
 
-function ClienteGroup({ cliente, progetti, defaultOpen, onEdit }: {
-  cliente: string; progetti: Progetto[]; defaultOpen: boolean; onEdit: (p: Progetto) => void;
+function ClienteGroup({ cliente, progetti, defaultOpen, onEdit, canEdit }: {
+  cliente: string; progetti: Progetto[]; defaultOpen: boolean; onEdit: (p: Progetto) => void; canEdit: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const total  = progetti.length;
@@ -321,7 +321,7 @@ function ClienteGroup({ cliente, progetti, defaultOpen, onEdit }: {
             </div>
             {/* Azioni */}
             <div style={{ padding: "12px 14px", textAlign: "right" }}>
-              <button onClick={() => onEdit(p)} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>
+              {canEdit && <button onClick={() => onEdit(p)} style={{ fontSize: 12, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>Modifica</button>}
             </div>
           </div>
         );
@@ -450,7 +450,7 @@ function EditProgettoDrawer({ progetto, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProgettiPage() {
-  const { isPmFornitore, user, loading: userLoading } = useUser();
+  const { isPmFornitore, isPsFornitore, user, loading: userLoading } = useUser();
   const [progetti, setProgetti]   = useState<Progetto[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -470,7 +470,7 @@ export default function ProgettiPage() {
           pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
         )
       `);
-    if (isPmFornitore && user?.fornitore_id) {
+    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
       query = query.eq("cg_clienti.fornitore_id", user.fornitore_id);
     }
     const { data, error } = await query.order("nome");
@@ -499,11 +499,11 @@ export default function ProgettiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (isPmFornitore && !user?.fornitore_id) return;
+    if ((isPmFornitore || isPsFornitore) && !user?.fornitore_id) return;
     setProgetti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
 
   const allClienti = Array.from(new Set(progetti.map((p) => p.cliente_nome))).sort();
   const allStati   = ["Attivo", "Concluso"];
@@ -540,10 +540,10 @@ export default function ProgettiPage() {
             {loading ? "Caricamento..." : `${totalActive} attivi · ${progetti.length - totalActive} conclusi · ${progetti.length} totali`}
           </p>
         </div>
-        <button onClick={() => setShowNew(true)}
+        {!isPsFornitore && <button onClick={() => setShowNew(true)}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
           <Plus size={15} />Nuovo Progetto
-        </button>
+        </button>}
       </div>
 
       {/* Search */}
@@ -575,7 +575,7 @@ export default function ProgettiPage() {
             ))}
           </div>
           {grouped.map((g, i) => (
-            <ClienteGroup key={g.cliente} cliente={g.cliente} progetti={g.progetti} defaultOpen={i === 0} onEdit={(p) => setEditing(p)} />
+            <ClienteGroup key={g.cliente} cliente={g.cliente} progetti={g.progetti} defaultOpen={i === 0} onEdit={(p) => setEditing(p)} canEdit={!isPsFornitore} />
           ))}
         </div>
       )}
