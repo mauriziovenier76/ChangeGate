@@ -292,7 +292,7 @@ function StandardDashboard({ fornitoreId }: { fornitoreId?: string | null }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { isAdmin, isPmFornitore, user, loading } = useUser();
+  const { isAdmin, isPmFornitore, isPsFornitore, user, loading } = useUser();
   if (loading) return null;
-  return isAdmin ? <AdminDashboard /> : <StandardDashboard fornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />;
+  return isAdmin ? <AdminDashboard /> : <StandardDashboard fornitoreId={(isPmFornitore || isPsFornitore) ? (user?.fornitore_id ?? null) : null} />;
 }
