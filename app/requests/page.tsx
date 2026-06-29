@@ -830,7 +830,7 @@ const buildGrid = (showTest: boolean, showProd: boolean) =>
 
 function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, showTest, showProd, selectedCRIds, onToggleCR }: {
   project: Project; isOpen: boolean; onToggle: () => void;
-  onSelectCR: (cr: CR, project: Project) => void; onAddCR: (project: Project) => void;
+  onSelectCR: (cr: CR, project: Project) => void; onAddCR?: (project: Project) => void;
   showTest: boolean; showProd: boolean;
   selectedCRIds: Set<string>; onToggleCR: (id: string) => void;
 }) {
@@ -861,7 +861,7 @@ function ProjectAccordion({ project, isOpen, onToggle, onSelectCR, onAddCR, show
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>·</span>
             <span style={{ fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" as const }}>{project.client}</span>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); onAddCR(project); }} title={`Nuova CR per ${project.name}`}
+          {onAddCR && <button onClick={(e) => { e.stopPropagation(); onAddCR(project); }} title={`Nuova CR per ${project.name}`}
             style={{ background: "none", border: "none", cursor: "pointer", padding: "0 4px", color: "#0f172a", fontSize: 20, fontWeight: 300, lineHeight: 1, display: "flex", alignItems: "center", flexShrink: 0 }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "#2563eb")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "#0f172a")}>+</button>
@@ -977,7 +977,7 @@ export default function RequestsPage() {
     // Controlla prerequisiti: deve esistere almeno un cliente e un progetto
     // Per pm_fornitore filtra per il proprio fornitore
     let clientiQ = supabase.from("cg_clienti").select("id", { count: "exact", head: true }).eq("attivo", true);
-    if (isPmFornitore && user?.fornitore_id) clientiQ = (clientiQ as typeof clientiQ).eq("fornitore_id", user.fornitore_id);
+    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) clientiQ = (clientiQ as typeof clientiQ).eq("fornitore_id", user.fornitore_id);
     const { count: clientiCount } = await clientiQ;
     if (!clientiCount || clientiCount === 0) {
       setPrereqAlert("cliente");
@@ -987,7 +987,7 @@ export default function RequestsPage() {
       .from("cg_progetti")
       .select("id, cg_clienti!inner(fornitore_id)", { count: "exact", head: true })
       .eq("attivo", true);
-    if (isPmFornitore && user?.fornitore_id) progettiQ = (progettiQ as typeof progettiQ).eq("cg_clienti.fornitore_id", user.fornitore_id);
+    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) progettiQ = (progettiQ as typeof progettiQ).eq("cg_clienti.fornitore_id", user.fornitore_id);
     const { count: progettiCount } = await progettiQ;
     if (!progettiCount || progettiCount === 0) {
       setPrereqAlert("progetto");
@@ -997,7 +997,7 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
-  const { isPmFornitore, user, loading: userLoading } = useUser();
+  const { isPmFornitore, isPsFornitore, user, loading: userLoading } = useUser();
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
@@ -1032,7 +1032,7 @@ export default function RequestsPage() {
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
       .order("created_at", { ascending: false });
-    if (isPmFornitore && user?.fornitore_id) {
+    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
       query = query.eq("cg_progetti.cg_clienti.fornitore_id", user.fornitore_id);
     }
     const { data, error } = await query;
@@ -1095,7 +1095,7 @@ export default function RequestsPage() {
     setProjects([]); // azzera dati prima di caricare quelli del nuovo utente
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
 
   const allClients  = Array.from(new Set(projects.map((p) => p.client))).sort();
   const allStatuses: CRStatus[] = ["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"];
@@ -1132,10 +1132,10 @@ export default function RequestsPage() {
             {loading ? "Caricamento..." : `${projects.length} progetti · ${totalCRs} richieste totali`}
           </p>
         </div>
-        <button onClick={() => openNewCR()}
+        {!isPsFornitore && <button onClick={() => openNewCR()}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
           <Plus size={15} />Nuova CR
-        </button>
+        </button>}
       </div>
 
       {/* Search */}
@@ -1249,7 +1249,7 @@ export default function RequestsPage() {
             ))}
           </div>
           {filtered.map((project) => (
-            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={openNewCR} showTest={showTest} showProd={showProd} selectedCRIds={selectedCRIds} onToggleCR={toggleCRSelection} />
+            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={isPsFornitore ? undefined : openNewCR} showTest={showTest} showProd={showProd} selectedCRIds={selectedCRIds} onToggleCR={toggleCRSelection} />
           ))}
         </div>
       )}
