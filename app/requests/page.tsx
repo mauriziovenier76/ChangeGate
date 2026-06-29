@@ -978,6 +978,7 @@ export default function RequestsPage() {
     // Per pm_fornitore filtra per il proprio fornitore
     let clientiQ = supabase.from("cg_clienti").select("id", { count: "exact", head: true }).eq("attivo", true);
     if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) clientiQ = (clientiQ as typeof clientiQ).eq("fornitore_id", user.fornitore_id);
+    if (isKuCliente) { setPrereqAlert("cliente"); return; } // ku_cliente non può creare CR
     const { count: clientiCount } = await clientiQ;
     if (!clientiCount || clientiCount === 0) {
       setPrereqAlert("cliente");
@@ -997,7 +998,7 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
-  const { isPmFornitore, isPsFornitore, user, loading: userLoading } = useUser();
+  const { isPmFornitore, isPsFornitore, isKuCliente, user, loading: userLoading } = useUser();
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
@@ -1034,6 +1035,9 @@ export default function RequestsPage() {
       .order("created_at", { ascending: false });
     if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
       query = query.eq("cg_progetti.cg_clienti.fornitore_id", user.fornitore_id);
+    }
+    if (isKuCliente && user?.cliente_id) {
+      query = query.eq("cg_progetti.cliente_id", user.cliente_id);
     }
     const { data, error } = await query;
 
@@ -1095,7 +1099,7 @@ export default function RequestsPage() {
     setProjects([]); // azzera dati prima di caricare quelli del nuovo utente
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
+  }, [userLoading, user?.fornitore_id, user?.cliente_id, isPmFornitore, isPsFornitore, isKuCliente]);
 
   const allClients  = Array.from(new Set(projects.map((p) => p.client))).sort();
   const allStatuses: CRStatus[] = ["In Attesa", "In Approvazione", "In Lavorazione", "Completata", "Bloccata"];
@@ -1132,7 +1136,7 @@ export default function RequestsPage() {
             {loading ? "Caricamento..." : `${projects.length} progetti · ${totalCRs} richieste totali`}
           </p>
         </div>
-        {!isPsFornitore && <button onClick={() => openNewCR()}
+        {!isPsFornitore && !isKuCliente && <button onClick={() => openNewCR()}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
           <Plus size={15} />Nuova CR
         </button>}
@@ -1249,7 +1253,7 @@ export default function RequestsPage() {
             ))}
           </div>
           {filtered.map((project) => (
-            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={(cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={isPsFornitore ? undefined : openNewCR} showTest={showTest} showProd={showProd} selectedCRIds={selectedCRIds} onToggleCR={toggleCRSelection} />
+            <ProjectAccordion key={project.id} project={project} isOpen={openProjects.has(project.id)} onToggle={() => toggleProject(project.id)} onSelectCR={isKuCliente ? () => {} : (cr, proj) => setSelectedCR({ cr, project: proj })} onAddCR={isPsFornitore || isKuCliente ? undefined : openNewCR} showTest={showTest} showProd={showProd} selectedCRIds={selectedCRIds} onToggleCR={toggleCRSelection} />
           ))}
         </div>
       )}
