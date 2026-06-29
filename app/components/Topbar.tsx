@@ -11,13 +11,13 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
 
-type NavChild = { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; };
-type NavItem  = { label: string; href?: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; children?: NavChild[]; };
+type NavChild = { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean; };
+type NavItem  = { label: string; href?: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean; children?: NavChild[]; };
 
 export default function Topbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { user, isAdmin, isPmFornitore, isPsFornitore } = useUser();
+  const { user, isAdmin, isPmFornitore, isPsFornitore, isKuCliente } = useUser();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUser, setOpenUser]         = useState(false);
   const navRef  = useRef<HTMLDivElement>(null);
@@ -44,6 +44,7 @@ export default function Topbar() {
     {
       label: "Configurazioni",
       icon: <Settings size={15} />,
+      hideForKuCliente: true,
       children: [
         { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} />,  hideForAdmin: true },
         { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} />, hideForAdmin: true },
@@ -53,8 +54,8 @@ export default function Topbar() {
     },
   ];
 
-  const shouldHide = (item: { hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean }) =>
-    (isAdmin && item.hideForAdmin) || (isPmFornitore && item.hideForPmFornitore) || (isPsFornitore && item.hideForPsFornitore);
+  const shouldHide = (item: { hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean }) =>
+    (isAdmin && item.hideForAdmin) || (isPmFornitore && item.hideForPmFornitore) || (isPsFornitore && item.hideForPsFornitore) || (isKuCliente && item.hideForKuCliente);
 
   const nav = allNav.filter((item) => !shouldHide(item));
 
