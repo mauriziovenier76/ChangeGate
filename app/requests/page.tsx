@@ -963,8 +963,6 @@ export default function RequestsPage() {
   const [showNewCR, setShowNewCR]   = useState(false);
   const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
   const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
-  const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
-  const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
   const [showTest, setShowTest] = useState(true);
   const [showProd, setShowProd] = useState(true);
   const [selectedCRIds, setSelectedCRIds] = useState<Set<string>>(new Set());
