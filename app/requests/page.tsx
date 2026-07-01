@@ -20,6 +20,8 @@ type CR = {
   startDate: string | null;
   endDate: string | null;
   assignedTo: string | null;
+  pmId: string | null;
+  specialistaId: string | null;
   description?: string;
   noteCliente?: string;
   createdAt: string | null;
@@ -238,7 +240,7 @@ function SearchableListbox({ items, selected, onSelect, placeholder, disabled = 
 
 // ─── Drawer detail / edit ─────────────────────────────────────────────────────
 
-function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project; onClose: () => void; onSaved: () => void }) {
+function CRDrawer({ cr, project, onClose, onSaved, canEdit = true }: { cr: CR; project: Project; onClose: () => void; onSaved: () => void; canEdit?: boolean }) {
   const [form, setForm] = useState({
     titolo:      cr.title,
     descrizione: cr.description ?? "",
@@ -294,7 +296,7 @@ function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project;
     setSaved(true); onSaved();
   };
 
-  const inp: React.CSSProperties = { width: "100%", padding: "7px 9px", borderRadius: 7, border: "1.5px solid var(--border)", fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit", outline: "none", boxSizing: "border-box", backgroundColor: "white" };
+  const inp: React.CSSProperties = { width: "100%", padding: "7px 9px", borderRadius: 7, border: "1.5px solid var(--border)", fontSize: 12, color: "var(--text-primary)", fontFamily: "inherit", outline: "none", boxSizing: "border-box", backgroundColor: canEdit ? "white" : "#f8fafc", pointerEvents: canEdit ? "auto" : "none" as React.CSSProperties["pointerEvents"] };
   const lbl: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" };
   const sec = (title: string, color = "#0f172a") => (
     <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10, paddingBottom: 5, borderBottom: `2px solid ${color}22` }}>{title}</div>
@@ -403,10 +405,10 @@ function CRDrawer({ cr, project, onClose, onSaved }: { cr: CR; project: Project;
         {/* Footer */}
         <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: 1, padding: "9px", borderRadius: 8, border: "1.5px solid var(--border)", background: "none", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}>Chiudi</button>
-          <button onClick={handleSave} disabled={saving}
+          {canEdit && <button onClick={handleSave} disabled={saving}
             style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: saved ? "#10b981" : saving ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)", fontSize: 13, fontWeight: 600, color: "white", cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}>
             {saving ? "Salvataggio..." : saved ? "✓ Salvato" : "Salva"}
-          </button>
+          </button>}
         </div>
       </div>
     </>
@@ -961,6 +963,8 @@ export default function RequestsPage() {
   const [showNewCR, setShowNewCR]   = useState(false);
   const [preSelected, setPreSelected] = useState<{ clienteId: string; progettoId: string } | null>(null);
   const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
+  const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
+  const [prereqAlert, setPrereqAlert] = useState<"cliente" | "progetto" | null>(null);
   const [showTest, setShowTest] = useState(true);
   const [showProd, setShowProd] = useState(true);
   const [selectedCRIds, setSelectedCRIds] = useState<Set<string>>(new Set());
@@ -998,7 +1002,7 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
-  const { isPmFornitore, isPsFornitore, isKuCliente, user, loading: userLoading } = useUser();
+  const { isPmFornitore, isPsFornitore, isKuCliente, user, loading: userLoading, canEditCR } = useUser();
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {
@@ -1030,6 +1034,7 @@ export default function RequestsPage() {
         prod_eff_ore, prod_eff_da, prod_eff_a,
         prod_val_data, prod_val_utente,
         cg_progetti!inner ( id, nome, codice, cg_clienti!inner ( id, nome, fornitore_id ) ),
+        pm_id, specialista_id,
         pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
       `)
       .order("created_at", { ascending: false });
@@ -1070,6 +1075,8 @@ export default function RequestsPage() {
         startDate:   row.data_inizio,
         endDate:     row.data_fine,
         assignedTo:  pm?.nome ?? null,
+        pmId:        row.pm_id ?? null,
+        specialistaId: row.specialista_id ?? null,
         description: row.descrizione ?? undefined,
         noteCliente: row.note_cliente ?? undefined,
         createdAt:   row.created_at ?? null,
@@ -1095,7 +1102,7 @@ export default function RequestsPage() {
 
   useEffect(() => {
     if (userLoading) return; // UserContext non ancora pronto
-    if (isPmFornitore && !user?.fornitore_id) return;
+    if ((isPmFornitore || isPsFornitore) && !user?.fornitore_id) return;
     setProjects([]); // azzera dati prima di caricare quelli del nuovo utente
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1259,7 +1266,7 @@ export default function RequestsPage() {
       )}
 
       {/* Drawer */}
-      {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} onSaved={loadData} />}
+      {selectedCR && <CRDrawer cr={selectedCR.cr} project={selectedCR.project} onClose={() => setSelectedCR(null)} onSaved={loadData} canEdit={canEditCR(selectedCR.cr.pmId, selectedCR.cr.specialistaId)} />}
 
       {/* Prerequisiti mancanti */}
       {prereqAlert && (
