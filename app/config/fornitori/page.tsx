@@ -421,34 +421,39 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
           </div>
 
           {teamMembers.length > 0 && (
-            <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 80px", backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
-                {["Nome", "Email", "Ruolo", ""].map((h) => (
-                  <div key={h} style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{h}</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
+                  <th style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "left" }}>Nome</th>
+                  <th style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "left" }}>Email</th>
+                  <th style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", textAlign: "left" }}>Ruolo</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamMembers.map((m, i) => (
+                  <tr key={m.id ?? i} style={{ borderBottom: i < teamMembers.length - 1 ? "1px solid var(--border-soft)" : "none", backgroundColor: m.isNew ? "#f0fdf4" : "white" }}>
+                    <td style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                      {m.nome}
+                      {m.isNew && <span style={{ marginLeft: 6, fontSize: 10, color: "#059669", fontWeight: 700 }}>NUOVO</span>}
+                    </td>
+                    <td style={{ padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)" }}>{m.email || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
+                    <td style={{ padding: "8px 12px" }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, backgroundColor: m.ruolo === "pm" ? "#eff6ff" : "#f0fdf4", color: m.ruolo === "pm" ? "#2563eb" : "#059669" }}>
+                        {m.ruolo === "pm" ? "PM" : "Specialista"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                      {m.isNew && (
+                        <button onClick={() => removeMember(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                          Rimuovi
+                        </button>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-              {teamMembers.map((m, i) => (
-                <div key={m.id ?? i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 80px", alignItems: "center", borderBottom: i < teamMembers.length - 1 ? "1px solid var(--border-soft)" : "none", backgroundColor: m.isNew ? "#f0fdf4" : "white" }}>
-                  <div style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-                    {m.nome}
-                    {m.isNew && <span style={{ marginLeft: 6, fontSize: 10, color: "#059669", fontWeight: 700 }}>NUOVO</span>}
-                  </div>
-                  <div style={{ padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)" }}>{m.email || <span style={{ color: "#cbd5e1" }}>—</span>}</div>
-                  <div style={{ padding: "8px 12px" }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, backgroundColor: m.ruolo === "pm" ? "#eff6ff" : "#f0fdf4", color: m.ruolo === "pm" ? "#2563eb" : "#059669" }}>
-                      {m.ruolo === "pm" ? "PM" : "Specialista"}
-                    </span>
-                  </div>
-                  <div style={{ padding: "8px 12px" }}>
-                    {m.isNew && (
-                      <button onClick={() => removeMember(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-                        Rimuovi
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+              </tbody>
+            </table>
           )}
 
           {/* Stato */}
