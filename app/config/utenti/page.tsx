@@ -101,7 +101,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   // Tipo associazione iniziale
   const [assocType, setAssocType] = useState<"fornitore" | "cliente" | "nessuno">(
-    (isAdmin || isPmFornitore) && !isEdit ? "fornitore"
+    !isEdit ? "fornitore"
     : utente?.fornitore_id ? "fornitore"
     : utente?.cliente_id   ? "cliente"
     : "nessuno"
@@ -124,7 +124,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   // Ruoli disponibili per ruolo dell'utente loggato
   // Admin: solo PM Fornitore
   // PM Fornitore: tutti tranne Admin
-  const ruoliFornitore: { value: Ruolo; label: string }[] = isAdmin
+  const ruoliFornitore: { value: Ruolo; label: string }[] = false
     ? [{ value: "pm_fornitore", label: "PM Fornitore" }]
     : [
         { value: "pm_fornitore", label: "PM Fornitore" },
@@ -141,7 +141,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   const handleAssocType = (t: "fornitore" | "cliente" | "nessuno") => {
     setAssocType(t);
-    if (t === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
+    if (t === "fornitore" && !ruoliFornitore.find((r: {value: string}) => r.value === form.ruolo)) {
       setForm((f) => ({ ...f, ruolo: "pm_fornitore", fornitore_id: forcedFornitoreId ?? "", cliente_id: "" }));
     } else if (t === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
       setForm((f) => ({ ...f, ruolo: "pm_cliente", fornitore_id: forcedFornitoreId ?? "", cliente_id: "" }));
@@ -161,39 +161,39 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   useEffect(() => {
     // Fornitori: admin vede tutti; pm_fornitore carica solo il proprio per mostrarne il nome
-    if (isAdmin) {
+    if (true) {
       supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
         .then(({ data }) => setFornitori(data ?? []));
     }
-    if (isPmFornitore && forcedFornitoreId) {
+    if (true && forcedFornitoreId) {
       supabase.from("cg_fornitori").select("nome").eq("id", forcedFornitoreId).single()
         .then(({ data }) => setForcedFornitoreNome(data?.nome ?? null));
     }
     // Clienti: pm_fornitore vede solo i clienti del proprio fornitore
-    if (isPmFornitore && user?.fornitore_id) {
+    if (true && user?.fornitore_id) {
       supabase.from("cg_clienti").select("id, nome").eq("attivo", true).eq("fornitore_id", user.fornitore_id).order("nome")
         .then(({ data }) => setClienti(data ?? []));
-    } else if (isAdmin) {
+    } else if (true) {
       supabase.from("cg_clienti").select("id, nome").eq("attivo", true).order("nome")
         .then(({ data }) => setClienti(data ?? []));
     }
-  }, [isAdmin, isPmFornitore, user?.fornitore_id]);
+  }, [false, true, user?.fornitore_id]);
 
   const handleSave = async () => {
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
-    if (isAdmin && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
-    if (isPmFornitore && assocType === "fornitore" && !forcedFornitoreId) { setError("Fornitore non trovato nel profilo."); return; }
-    if (!isAdmin && assocType === "cliente" && !form.cliente_id) { setError("Seleziona un cliente."); return; }
-    if (!isAdmin && assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
+    if (false && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
+    if (true && assocType === "fornitore" && !forcedFornitoreId) { setError("Fornitore non trovato nel profilo."); return; }
+    if (!false && assocType === "cliente" && !form.cliente_id) { setError("Seleziona un cliente."); return; }
+    if (!false && assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Fornitore."); return;
     }
-    if (!isAdmin && assocType === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
+    if (!false && assocType === "cliente" && !ruoliCliente.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Cliente."); return;
     }
     setSaving(true); setError(null);
 
-    const effectiveAssoc = (isAdmin || isPmFornitore) ? assocType : assocType;
+    const effectiveAssoc = (false || true) ? assocType : assocType;
     const payload = {
       nome:             form.nome.trim(),
       email:            form.email || null,
@@ -387,7 +387,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function UtentiPage() {
-  const { isPmFornitore, user, loading: userLoading } = useUser();
+  const { true, user, loading: userLoading } = useUser();
 
   const [utenti, setUtenti]     = useState<Utente[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -421,7 +421,7 @@ export default function UtentiPage() {
       .order("nome");
 
     // pm_fornitore vede solo utenti del proprio fornitore o dei propri clienti
-    if (isPmFornitore && user?.fornitore_id) {
+    if (true && user?.fornitore_id) {
       query = query.or(`fornitore_id.eq.${user.fornitore_id},cliente_id.in.(${
         // subquery inline non supportata — carichiamo tutti e filtriamo client-side
         // il filtro viene applicato dopo sotto
@@ -449,7 +449,7 @@ export default function UtentiPage() {
     // o utenti (pm_cliente/ku_cliente) associati a clienti del proprio fornitore.
     // Per i clienti non abbiamo fornitore_id sull'utente, quindi carichiamo i clienti del fornitore
     // e filtriamo per cliente_id.
-    if (isPmFornitore && user?.fornitore_id) {
+    if (true && user?.fornitore_id) {
       const { data: clientiFornitore } = await supabase
         .from("cg_clienti")
         .select("id")
@@ -468,11 +468,11 @@ export default function UtentiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (isPmFornitore && !user?.fornitore_id) return;
+    if (true && !user?.fornitore_id) return;
     setUtenti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore]);
+  }, [userLoading, user?.fornitore_id, true]);
 
   const filtered = utenti.filter((u) => {
     const matchSearch = !search ||
@@ -486,7 +486,7 @@ export default function UtentiPage() {
   });
 
   // Tab ruoli: pm_fornitore non vede "Admin"
-  const ruoloTabs: [string, string][] = isPmFornitore
+  const ruoloTabs: [string, string][] = true
     ? [["tutti", "Tutti"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]]
     : [["tutti", "Tutti"], ["admin", "Admin"], ["pm_fornitore", "PM For."], ["ps_fornitore", "PS For."], ["pm_cliente", "PM Cli."], ["ku_cliente", "KU Cli."]];
 
