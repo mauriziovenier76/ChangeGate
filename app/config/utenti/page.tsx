@@ -183,7 +183,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     if (!form.avatar_iniziali.trim()) { setError("Le iniziali sono obbligatorie."); return; }
     if (false && !form.fornitore_id) { setError("Seleziona un fornitore — obbligatorio per gli utenti Admin."); return; }
-    if (true && assocType === "fornitore" && !forcedFornitoreId) { setError("Fornitore non trovato nel profilo."); return; }
+    if (!isEdit && assocType === "fornitore" && !forcedFornitoreId) { setError("Fornitore non trovato nel profilo."); return; }
     if (!false && assocType === "cliente" && !form.cliente_id) { setError("Seleziona un cliente."); return; }
     if (!false && assocType === "fornitore" && !ruoliFornitore.find(r => r.value === form.ruolo)) {
       setError("Il ruolo selezionato non è compatibile con un utente Fornitore."); return;
@@ -201,7 +201,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
       attivo:           form.attivo,
       // pm_fornitore: se assocType è fornitore usa forcedFornitoreId, se cliente lascia null
       fornitore_id:     effectiveAssoc === "fornitore"
-                          ? ((forcedFornitoreId ?? form.fornitore_id) || null)
+                          ? (isEdit ? (form.fornitore_id || null) : ((forcedFornitoreId ?? form.fornitore_id) || null))
                           : null,
       cliente_id:       effectiveAssoc === "cliente" ? form.cliente_id || null : null,
       avatar_iniziali:  form.avatar_iniziali.slice(0, 2).toUpperCase(),
