@@ -387,7 +387,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function UtentiPage() {
-  const { true, user, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   const [utenti, setUtenti]     = useState<Utente[]>([]);
   const [loading, setLoading]   = useState(true);
