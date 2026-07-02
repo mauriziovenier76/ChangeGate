@@ -81,6 +81,28 @@ function NewFornitoreModal({ onClose, onCreated }: { onClose: () => void; onCrea
         teamMembers.map((m) => ({ fornitore_id: fData.id, nome: m.nome, email: m.email || null, ruolo: m.ruolo }))
       );
       if (tErr) { setError(tErr.message); setSaving(false); return; }
+
+      // Crea anche i record in cg_utenti per ogni membro del team
+      // ruolo team "pm" → pm_fornitore, "specialista" → ps_fornitore
+      const utentiDaCreare = teamMembers
+        .filter((m) => m.nome.trim()) // solo se hanno un nome
+        .map((m) => ({
+          nome:            m.nome.trim(),
+          email:           m.email || null,
+          ruolo:           m.ruolo === "pm" ? "pm_fornitore" : "ps_fornitore",
+          fornitore_id:    fData.id,
+          attivo:          true,
+          avatar_iniziali: m.nome.trim().split(/\s+/).length >= 2
+            ? (m.nome.trim().split(/\s+/)[0][0] + m.nome.trim().split(/\s+/)[1][0]).toUpperCase()
+            : m.nome.trim().slice(0, 2).toUpperCase(),
+          avatar_bg:    "#2563eb",
+          avatar_colore: "#ffffff",
+        }));
+
+      if (utentiDaCreare.length > 0) {
+        const { error: uErr } = await supabase.from("cg_utenti").insert(utentiDaCreare);
+        if (uErr) { setError(uErr.message); setSaving(false); return; }
+      }
     }
 
     setSaving(false);
