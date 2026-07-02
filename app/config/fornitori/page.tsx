@@ -267,22 +267,66 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
     email:  fornitore.email ?? "",
     attivo: fornitore.attivo,
   });
+  const [teamMembers, setTeamMembers] = useState<{ id?: string; nome: string; email: string; ruolo: "pm" | "specialista"; isNew?: boolean }[]>([]);
+  const [newMember, setNewMember] = useState({ nome: "", email: "", ruolo: "pm" as "pm" | "specialista" });
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
+  // Carica team esistente
+  useEffect(() => {
+    supabase.from("cg_team").select("id, nome, email, ruolo").eq("fornitore_id", fornitore.id).order("nome")
+      .then(({ data }) => setTeamMembers((data ?? []).map((m) => ({ id: m.id, nome: m.nome, email: m.email ?? "", ruolo: m.ruolo as "pm" | "specialista" }))));
+  }, [fornitore.id]);
+
   const set = (k: string, v: string | boolean) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
+
+  const addMember = () => {
+    if (!newMember.nome.trim()) return;
+    setTeamMembers((t) => [...t, { ...newMember, isNew: true }]);
+    setNewMember({ nome: "", email: "", ruolo: "pm" });
+  };
+
+  const removeMember = (idx: number) => setTeamMembers((t) => t.filter((_, i) => i !== idx));
 
   const handleSave = async () => {
     if (!form.nome.trim()) { setError("Il nome è obbligatorio."); return; }
     setSaving(true); setError(null);
+
+    // 1. Aggiorna anagrafica fornitore
     const { error: err } = await supabase.from("cg_fornitori").update({
       nome:   form.nome.trim(),
       email:  form.email || null,
       attivo: form.attivo,
     }).eq("id", fornitore.id);
+    if (err) { setError(err.message); setSaving(false); return; }
+
+    // 2. Inserisci nuovi membri team
+    const nuovi = teamMembers.filter((m) => m.isNew);
+    if (nuovi.length > 0) {
+      const { error: tErr } = await supabase.from("cg_team").insert(
+        nuovi.map((m) => ({ fornitore_id: fornitore.id, nome: m.nome.trim(), email: m.email || null, ruolo: m.ruolo }))
+      );
+      if (tErr) { setError(tErr.message); setSaving(false); return; }
+
+      // 3. Crea anche record in cg_utenti per i nuovi
+      const utentiDaCreare = nuovi.map((m) => ({
+        nome:            m.nome.trim(),
+        email:           m.email || null,
+        ruolo:           m.ruolo === "pm" ? "pm_fornitore" : "ps_fornitore",
+        fornitore_id:    fornitore.id,
+        attivo:          true,
+        avatar_iniziali: m.nome.trim().split(/\s+/).length >= 2
+          ? (m.nome.trim().split(/\s+/)[0][0] + m.nome.trim().split(/\s+/)[1][0]).toUpperCase()
+          : m.nome.trim().slice(0, 2).toUpperCase(),
+        avatar_bg:    "#2563eb",
+        avatar_colore: "#ffffff",
+      }));
+      const { error: uErr } = await supabase.from("cg_utenti").insert(utentiDaCreare);
+      if (uErr) { setError(uErr.message); setSaving(false); return; }
+    }
+
     setSaving(false);
-    if (err) { setError(err.message); return; }
     setSaved(true);
     onSaved();
   };
@@ -298,11 +342,14 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
     color: "var(--text-muted)", marginBottom: 5,
     textTransform: "uppercase", letterSpacing: "0.06em",
   };
+  const sectionLabel = (t: string) => (
+    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginBottom: 10, paddingBottom: 6, borderBottom: "1px solid var(--border-soft)" }}>{t}</div>
+  );
 
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(15,23,42,0.3)", zIndex: 40, backdropFilter: "blur(2px)" }} />
-      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 440, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="animate-slideIn" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 500, backgroundColor: "white", boxShadow: "-8px 0 32px rgba(0,0,0,0.12)", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Header */}
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
@@ -316,23 +363,24 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
         {/* Body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
 
+          {/* Anagrafica */}
+          {sectionLabel("Anagrafica")}
           <div>
             <label style={labelStyle}>Nome *</label>
             <input type="text" value={form.nome} onChange={(e) => set("nome", e.target.value)} style={inputStyle} />
           </div>
-
           <div>
             <label style={labelStyle}>Email</label>
             <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="info@fornitore.it" style={inputStyle} />
           </div>
 
-          {/* Stats read-only */}
+          {/* Stats */}
           <div style={{ backgroundColor: "#eff6ff", borderRadius: 10, padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
             {[
-              { label: "PM",         value: fornitore.pm },
-              { label: "Specialisti", value: fornitore.specialisti },
-              { label: "Clienti",    value: fornitore.clientCount },
-              { label: "Progetti",   value: fornitore.projectCount },
+              { label: "PM",          value: teamMembers.filter((m) => m.ruolo === "pm").length },
+              { label: "Specialisti", value: teamMembers.filter((m) => m.ruolo === "specialista").length },
+              { label: "Clienti",     value: fornitore.clientCount },
+              { label: "Progetti",    value: fornitore.projectCount },
             ].map((s) => (
               <div key={s.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#1e40af", lineHeight: 1 }}>{s.value}</div>
@@ -341,6 +389,70 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
             ))}
           </div>
 
+          {/* Team */}
+          {sectionLabel("Team")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto auto", gap: 8, alignItems: "flex-end", marginBottom: 4 }}>
+            <div>
+              <label style={{ ...labelStyle, marginBottom: 4 }}>Nome</label>
+              <input type="text" placeholder="Es. Marco Rossi" value={newMember.nome}
+                onChange={(e) => setNewMember((m) => ({ ...m, nome: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && addMember()}
+                style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, marginBottom: 4 }}>Email</label>
+              <input type="email" placeholder="marco@fornitore.it" value={newMember.email}
+                onChange={(e) => setNewMember((m) => ({ ...m, email: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && addMember()}
+                style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, marginBottom: 4 }}>Ruolo</label>
+              <select value={newMember.ruolo} onChange={(e) => setNewMember((m) => ({ ...m, ruolo: e.target.value as "pm" | "specialista" }))}
+                style={{ ...inputStyle, width: "auto", cursor: "pointer" }}>
+                <option value="pm">PM</option>
+                <option value="specialista">Specialista</option>
+              </select>
+            </div>
+            <button onClick={addMember}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" as const }}>
+              + Aggiungi
+            </button>
+          </div>
+
+          {teamMembers.length > 0 && (
+            <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto auto", backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
+                {["Nome", "Email", "Ruolo", ""].map((h) => (
+                  <div key={h} style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{h}</div>
+                ))}
+              </div>
+              {teamMembers.map((m, i) => (
+                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto auto", alignItems: "center", borderBottom: i < teamMembers.length - 1 ? "1px solid var(--border-soft)" : "none", backgroundColor: m.isNew ? "#f0fdf4" : "white" }}>
+                  <div style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                    {m.nome}
+                    {m.isNew && <span style={{ marginLeft: 6, fontSize: 10, color: "#059669", fontWeight: 700 }}>NUOVO</span>}
+                  </div>
+                  <div style={{ padding: "8px 12px", fontSize: 13, color: "var(--text-secondary)" }}>{m.email || <span style={{ color: "#cbd5e1" }}>—</span>}</div>
+                  <div style={{ padding: "8px 12px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, backgroundColor: m.ruolo === "pm" ? "#eff6ff" : "#f0fdf4", color: m.ruolo === "pm" ? "#2563eb" : "#059669" }}>
+                      {m.ruolo === "pm" ? "PM" : "Specialista"}
+                    </span>
+                  </div>
+                  <div style={{ padding: "8px 12px" }}>
+                    {m.isNew && (
+                      <button onClick={() => removeMember(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+                        Rimuovi
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Stato */}
+          {sectionLabel("Stato")}
           <div onClick={() => set("attivo", !form.attivo)}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 9, border: "1.5px solid var(--border)", cursor: "pointer", backgroundColor: form.attivo ? "#f0fdf4" : "#f8fafc" }}>
             <div>
