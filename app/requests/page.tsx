@@ -1000,7 +1000,12 @@ export default function RequestsPage() {
     setShowNewCR(true);
   };
 
-  const { isPmFornitore, isPsFornitore, isKuCliente, user, loading: userLoading, canEditCR } = useUser();
+  const { isPmFornitore, isPsFornitore, isKuCliente, user, loading: userLoading } = useUser();
+  const canEditCR = (crPmId?: string | null, crSpecId?: string | null) => {
+    if (isPmFornitore) return true;
+    if (isPsFornitore) return crSpecId === user?.id || crPmId === user?.id;
+    return false;
+  };
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
 
   const toggleProject = (id: string) => {

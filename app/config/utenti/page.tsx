@@ -88,7 +88,7 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
 
 function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSaved: () => void; utente?: Utente }) {
   const isEdit = !!utente;
-  const { isAdmin, isPmFornitore, user } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   const [fornitori, setFornitori] = useState<OptionRow[]>([]);
   const [clienti, setClienti]     = useState<OptionRow[]>([]);
@@ -96,7 +96,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
   const [error, setError]         = useState<string | null>(null);
 
   // pm_fornitore: fornitore fisso al proprio
-  const forcedFornitoreId = isPmFornitore ? (user?.fornitore_id ?? null) : null;
+  const forcedFornitoreId = user?.fornitore_id ?? null;
   const [forcedFornitoreNome, setForcedFornitoreNome] = useState<string | null>(null);
 
   // Tipo associazione iniziale
@@ -133,7 +133,6 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
 
   const ruoliCliente: { value: Ruolo; label: string }[] = [
     { value: "pm_cliente", label: "PM Cliente" },
-    { value: "ku_cliente", label: "KU Cliente" },
   ];
 
   const ruoliDisponibili = assocType === "fornitore" ? ruoliFornitore
@@ -297,8 +296,8 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
           {/* 3 — Associazione */}
           {sectionTitle("3 · Associazione")}
 
-          {/* Admin: fornitore obbligatorio, lista selezionabile */}
-          {isAdmin && (
+          {/* Questo blocco non è più usato — solo pm_fornitore accede */}
+          {false && (
             <>
               <div style={{ padding: "10px 14px", backgroundColor: "#eff6ff", borderRadius: 8, fontSize: 13, color: "#1e40af", fontWeight: 500, marginBottom: 16 }}>
                 🏢 Utente associato obbligatoriamente a un Fornitore
@@ -322,7 +321,7 @@ function UtenteModal({ onClose, onSaved, utente }: { onClose: () => void; onSave
           )}
 
           {/* PM Fornitore: può scegliere fornitore (fisso) o cliente */}
-          {isPmFornitore && (
+          {true && (
             <>
               {/* Tab selezione tipo associazione */}
               <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>

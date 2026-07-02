@@ -26,16 +26,16 @@ type UserContextType = {
   isPsFornitore: boolean;
   isPmCliente: boolean;
   isKuCliente: boolean;
-  isFornitore: boolean; // admin | pm_fornitore | ps_fornitore
-  isCliente: boolean;  // pm_cliente | ku_cliente
+  isFornitore: boolean;
+  isCliente: boolean;
   canManageProjects: boolean;
   canCreateCR: boolean;
   canEditCR: (crPmId?: string | null, crSpecialistaId?: string | null) => boolean;
   canViewCR: boolean;
   canCreateFornitore: boolean;
   canCreateCliente: boolean;
-  canCreatePmFornitore: boolean;
-  canCreatePsFornitore: boolean;
+  canViewCliente: boolean;
+  canEditCliente: boolean;
   canCreatePmCliente: boolean;
   canCreateKuCliente: boolean;
 };
@@ -78,32 +78,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const ruolo = user?.ruolo;
-  const isAdmin        = ruolo === "admin";
-  const isPmFornitore  = ruolo === "pm_fornitore";
-  const isPsFornitore  = ruolo === "ps_fornitore";
-  const isPmCliente    = ruolo === "pm_cliente";
-  const isKuCliente    = ruolo === "ku_cliente";
-  const isFornitore    = isAdmin || isPmFornitore || isPsFornitore;
-  const isCliente      = isPmCliente || isKuCliente;
+  const isAdmin       = ruolo === "admin";
+  const isPmFornitore = ruolo === "pm_fornitore";
+  const isPsFornitore = ruolo === "ps_fornitore";
+  const isPmCliente   = ruolo === "pm_cliente";
+  const isKuCliente   = ruolo === "ku_cliente";
+  const isFornitore   = isAdmin || isPmFornitore || isPsFornitore;
+  const isCliente     = isPmCliente || isKuCliente;
 
   const ctx: UserContextType = {
     user, loading,
     isAdmin, isPmFornitore, isPsFornitore, isPmCliente, isKuCliente,
     isFornitore, isCliente,
-    canManageProjects:   isPmFornitore,
-    canCreateCR:         isPmFornitore,
+
+    // Progetti
+    canManageProjects: isPmFornitore,
+
+    // CR
+    canCreateCR:  isPmFornitore,
     canEditCR: (crPmId, crSpecialistaId) => {
       if (isPmFornitore) return true;
       if (isPsFornitore) return crSpecialistaId === user?.id || crPmId === user?.id;
       return false;
     },
-    canViewCR:           isAdmin === false, // tutti tranne admin vedono CR
-    canCreateFornitore:  isAdmin,
-    canCreateCliente:    isAdmin || isPmFornitore,
-    canCreatePmFornitore: isAdmin || isPmFornitore,
-    canCreatePsFornitore: isPmFornitore,
+    canViewCR: !isAdmin,
+
+    // Fornitori
+    canCreateFornitore: isAdmin,
+
+    // Clienti
+    canCreateCliente: isPmFornitore,
+    canViewCliente:   isPmFornitore,
+    canEditCliente:   isPmFornitore,
+
+    // Utenti
     canCreatePmCliente:  isPmFornitore,
-    canCreateKuCliente:  isPmCliente,
+    canCreateKuCliente:  isPmFornitore,
   };
 
   return <UserContext.Provider value={ctx}>{children}</UserContext.Provider>;

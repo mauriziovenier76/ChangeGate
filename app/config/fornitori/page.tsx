@@ -351,7 +351,7 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FornitoriPage() {
-  const { isPsFornitore, user, loading: userLoading } = useUser();
+  const { isAdmin, isPsFornitore, user, loading: userLoading } = useUser();
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
   const [loading, setLoading]     = useState(true);
   const [showNew, setShowNew]     = useState(false);
@@ -424,7 +424,7 @@ export default function FornitoriPage() {
             {loading ? "Caricamento..." : `${fornitori.filter((f) => f.attivo).length} attivi · ${fornitori.length} totali`}
           </p>
         </div>
-        {!isPsFornitore && (
+        {isAdmin && (
           <button onClick={() => setShowNew(true)}
             style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
             <Plus size={15} />Nuovo Fornitore
@@ -544,7 +544,7 @@ export default function FornitoriPage() {
 
                     {/* Azioni */}
                     <td style={{ padding: "16px 20px", textAlign: "right" }}>
-                      {!isPsFornitore && (
+                      {isAdmin && (
                         <button onClick={() => setEditing(f)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" as const }}>
                           Modifica
                         </button>

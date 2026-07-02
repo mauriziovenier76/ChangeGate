@@ -11,13 +11,14 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
 
-type NavChild = { label: string; href: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean; };
-type NavItem  = { label: string; href?: string; icon: React.ReactNode; hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean; children?: NavChild[]; };
+type NavChild = { label: string; href: string; icon: React.ReactNode; roles?: string[]; };
+type NavItem  = { label: string; href?: string; icon: React.ReactNode; roles?: string[]; children?: NavChild[]; };
 
 export default function Topbar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { user, isAdmin, isPmFornitore, isPsFornitore, isKuCliente } = useUser();
+  const { user } = useUser();
+  const ruolo    = user?.ruolo ?? null;
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openUser, setOpenUser]         = useState(false);
   const navRef  = useRef<HTMLDivElement>(null);
@@ -37,27 +38,28 @@ export default function Topbar() {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
+  // roles: array di ruoli che VEDONO questa voce. Se assente = tutti.
   const allNav: NavItem[] = [
     { label: "Dashboard",      href: "/dashboard", icon: <LayoutDashboard size={15} /> },
-    { label: "Change Request", href: "/requests",  icon: <GitPullRequest size={15} />, hideForAdmin: true },
-    { label: "Planning",       href: "/planning",  icon: <CalendarDays size={15} />,   hideForAdmin: true },
+    { label: "Change Request", href: "/requests",  icon: <GitPullRequest size={15} />, roles: ["pm_fornitore", "ps_fornitore", "pm_cliente", "ku_cliente"] },
+    { label: "Planning",       href: "/planning",  icon: <CalendarDays size={15} />,   roles: ["pm_fornitore", "ps_fornitore", "pm_cliente", "ku_cliente"] },
     {
       label: "Configurazioni",
       icon: <Settings size={15} />,
-      hideForKuCliente: true,
+      roles: ["admin", "pm_fornitore", "ps_fornitore"],
       children: [
-        { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} />,  hideForAdmin: true },
-        { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} />, hideForAdmin: true },
-        { label: "Fornitori", href: "/config/fornitori", icon: <Users size={14} />,      hideForPmFornitore: true },
-        { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} />, hideForPsFornitore: true },
+        { label: "Clienti",   href: "/config/clienti",   icon: <Building2 size={14} />,  roles: ["pm_fornitore"] },
+        { label: "Progetti",  href: "/config/progetti",  icon: <FolderOpen size={14} />, roles: ["pm_fornitore"] },
+        { label: "Fornitori", href: "/config/fornitori", icon: <Users size={14} />,      roles: ["admin", "ps_fornitore"] },
+        { label: "Utenti",    href: "/config/utenti",    icon: <UserCircle size={14} />, roles: ["admin", "pm_fornitore"] },
       ],
     },
   ];
 
-  const shouldHide = (item: { hideForAdmin?: boolean; hideForPmFornitore?: boolean; hideForPsFornitore?: boolean; hideForKuCliente?: boolean }) =>
-    (isAdmin && item.hideForAdmin) || (isPmFornitore && item.hideForPmFornitore) || (isPsFornitore && item.hideForPsFornitore) || (isKuCliente && item.hideForKuCliente);
+  const isVisible = (item: { roles?: string[] }) =>
+    !item.roles || (ruolo !== null && item.roles.includes(ruolo));
 
-  const nav = allNav.filter((item) => !shouldHide(item));
+  const nav = allNav.filter(isVisible);
 
   const isActive = (item: NavItem) => {
     if (item.href) return pathname === item.href || pathname.startsWith(item.href + "/");
@@ -81,7 +83,7 @@ export default function Topbar() {
           const active = isActive(item);
           if (item.children) {
             const open = openDropdown === item.label;
-            const visibleChildren = item.children.filter((c) => !shouldHide(c));
+            const visibleChildren = item.children.filter(isVisible);
             return (
               <div key={item.label} style={{ position: "relative" }}>
                 <button onClick={() => setOpenDropdown(open ? null : item.label)}

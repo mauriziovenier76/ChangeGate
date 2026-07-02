@@ -343,7 +343,7 @@ function EditClienteDrawer({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ClientiPage() {
-  const { user, isPmFornitore, isPsFornitore, isAdmin, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   const [clienti, setClienti]     = useState<Cliente[]>([]);
   const [fornitori, setFornitori] = useState<Fornitore[]>([]);
@@ -353,11 +353,9 @@ export default function ClientiPage() {
   const [editing, setEditing]     = useState<Cliente | null>(null);
   const [filterAttivo, setFilterAttivo] = useState<"tutti" | "attivi" | "inattivi">("tutti");
 
-  // Se pm_fornitore, blocca fornitore al proprio
-  const forcedFornitoreId   = (isPmFornitore || isPsFornitore) ? (user?.fornitore_id ?? null) : null;
-  const forcedFornitoreNome = isPmFornitore
-    ? (fornitori.find((f) => f.id === forcedFornitoreId)?.nome ?? null)
-    : null;
+  // Solo pm_fornitore accede a questa pagina — fornitore sempre quello dell'utente
+  const forcedFornitoreId = user?.fornitore_id ?? null;
+  const [forcedFornitoreNome, setForcedFornitoreNome] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -370,10 +368,7 @@ export default function ClientiPage() {
       `)
       .order("nome");
 
-    // pm_fornitore e ps_fornitore vedono solo i clienti del proprio fornitore
-    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
-      query = query.eq("fornitore_id", user.fornitore_id);
-    }
+    if (forcedFornitoreId) query = query.eq("fornitore_id", forcedFornitoreId);
 
     const { data, error } = await query;
     if (error) { console.error(error); setLoading(false); return; }
@@ -398,13 +393,15 @@ export default function ClientiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if ((isPmFornitore || isPsFornitore) && !user?.fornitore_id) return;
+    if (!forcedFornitoreId) return;
     setClienti([]);
     loadData();
     supabase.from("cg_fornitori").select("id, nome").eq("attivo", true).order("nome")
       .then(({ data }) => setFornitori(data ?? []));
+    supabase.from("cg_fornitori").select("nome").eq("id", forcedFornitoreId).single()
+      .then(({ data }) => setForcedFornitoreNome(data?.nome ?? null));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
+  }, [userLoading, forcedFornitoreId]);
 
   const filtered = clienti.filter((c) => {
     const matchSearch = !search ||
@@ -421,7 +418,7 @@ export default function ClientiPage() {
   const inattivi = clienti.filter((c) => !c.attivo).length;
 
   // Nascondi colonna Fornitore se pm_fornitore (vedono solo il proprio)
-  const showFornitoreCol = isAdmin || (!isPmFornitore && !isPsFornitore);
+  const showFornitoreCol = false;
 
   if (userLoading) return null;
 

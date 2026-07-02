@@ -450,7 +450,7 @@ function EditProgettoDrawer({ progetto, onClose, onSaved }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProgettiPage() {
-  const { isPmFornitore, isPsFornitore, user, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useUser();
   const [progetti, setProgetti]   = useState<Progetto[]>([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState("");
@@ -470,7 +470,7 @@ export default function ProgettiPage() {
           pm:cg_team!cg_change_requests_pm_id_fkey ( nome )
         )
       `);
-    if ((isPmFornitore || isPsFornitore) && user?.fornitore_id) {
+    if (user?.fornitore_id) {
       query = query.eq("cg_clienti.fornitore_id", user.fornitore_id);
     }
     const { data, error } = await query.order("nome");
@@ -499,11 +499,11 @@ export default function ProgettiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if ((isPmFornitore || isPsFornitore) && !user?.fornitore_id) return;
+    if (!user?.fornitore_id) return;
     setProgetti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, isPmFornitore, isPsFornitore]);
+  }, [userLoading, user?.fornitore_id]);
 
   const allClienti = Array.from(new Set(progetti.map((p) => p.cliente_nome))).sort();
   const allStati   = ["Attivo", "Concluso"];
@@ -575,12 +575,12 @@ export default function ProgettiPage() {
             ))}
           </div>
           {grouped.map((g, i) => (
-            <ClienteGroup key={g.cliente} cliente={g.cliente} progetti={g.progetti} defaultOpen={i === 0} onEdit={(p) => setEditing(p)} canEdit={!isPsFornitore} />
+            <ClienteGroup key={g.cliente} cliente={g.cliente} progetti={g.progetti} defaultOpen={i === 0} onEdit={(p) => setEditing(p)} canEdit={true} />
           ))}
         </div>
       )}
 
-      {showNew  && <NewProgettoModal onClose={() => setShowNew(false)} onCreated={loadData} forcedFornitoreId={isPmFornitore ? (user?.fornitore_id ?? null) : null} />}
+      {showNew  && <NewProgettoModal onClose={() => setShowNew(false)} onCreated={loadData} forcedFornitoreId={user?.fornitore_id ?? null} />}
       {editing  && <EditProgettoDrawer progetto={editing} onClose={() => setEditing(null)} onSaved={loadData} />}
     </div>
   );
