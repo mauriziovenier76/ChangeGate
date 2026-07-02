@@ -432,12 +432,10 @@ export default function ClientiPage() {
             {loading ? "Caricamento..." : `${attivi} attivi · ${inattivi} inattivi · ${clienti.length} totali`}
           </p>
         </div>
-        {!isPsFornitore && (
-          <button onClick={() => setShowNew(true)}
+        <button onClick={() => setShowNew(true)}
             style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
-            <Plus size={15} />Nuovo Cliente
-          </button>
-        )}
+          <Plus size={15} />Nuovo Cliente
+        </button>
       </div>
 
       {/* Search + filter bar */}
@@ -509,11 +507,9 @@ export default function ClientiPage() {
                     </span>
                   </td>
                   <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                    {!isPsFornitore && (
-                      <button onClick={() => setEditing(c)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
-                        Modifica
-                      </button>
-                    )}
+                    <button onClick={() => setEditing(c)} style={{ fontSize: 13, color: "#2563eb", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                      Modifica
+                    </button>
                   </td>
                 </tr>
               ))}
