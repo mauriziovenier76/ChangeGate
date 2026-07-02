@@ -540,10 +540,10 @@ export default function ProgettiPage() {
             {loading ? "Caricamento..." : `${totalActive} attivi · ${progetti.length - totalActive} conclusi · ${progetti.length} totali`}
           </p>
         </div>
-        {!isPsFornitore && <button onClick={() => setShowNew(true)}
+        <button onClick={() => setShowNew(true)}
           style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 8, background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
           <Plus size={15} />Nuovo Progetto
-        </button>}
+        </button>
       </div>
 
       {/* Search */}
