@@ -421,7 +421,7 @@ export default function UtentiPage() {
       .order("nome");
 
     // pm_fornitore vede solo utenti del proprio fornitore o dei propri clienti
-    if (true && user?.fornitore_id) {
+    if (user?.ruolo === "pm_fornitore" && user?.fornitore_id) {
       query = query.or(`fornitore_id.eq.${user.fornitore_id},cliente_id.in.(${
         // subquery inline non supportata — carichiamo tutti e filtriamo client-side
         // il filtro viene applicato dopo sotto
@@ -468,11 +468,11 @@ export default function UtentiPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (true && !user?.fornitore_id) return;
+    if (!user) return;
     setUtenti([]);
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user?.fornitore_id, true]);
+  }, [userLoading, user?.id]);
 
   const filtered = utenti.filter((u) => {
     const matchSearch = !search ||
