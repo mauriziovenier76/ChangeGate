@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 
 const PALETTE = [
   "#0f172a","#1e293b","#2563eb","#1d4ed8","#7c3aed","#9333ea",
@@ -33,60 +34,41 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (c: 
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<{
-    id: string; nome: string; email: string | null; ruolo: string;
-    avatar_iniziali: string; avatar_bg: string; avatar_colore: string;
-  } | null>(null);
-  const [form, setForm] = useState({ nome: "", avatar_iniziali: "", avatar_bg: "#2563eb", avatar_colore: "#ffffff" });
-  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
-  const [saving, setSaving]   = useState(false);
+  const { user, loading } = useUser();
+
+  const [form, setForm] = useState<{ nome: string; avatar_iniziali: string; avatar_bg: string; avatar_colore: string } | null>(null);
+  const [pwForm, setPwForm] = useState({ newPw: "", confirm: "" });
+  const [saving, setSaving]     = useState(false);
   const [savingPw, setSavingPw] = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const [error, setError]     = useState<string | null>(null);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSaved, setPwSaved] = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [pwError, setPwError]   = useState<string | null>(null);
+  const [pwSaved, setPwSaved]   = useState(false);
 
-  const set = (k: string, v: string) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
-
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) return;
-      const authUser = data.session.user;
-
-      let { data: p } = await supabase.from("cg_utenti")
-        .select("id, nome, email, ruolo, avatar_iniziali, avatar_bg, avatar_colore")
-        .eq("auth_user_id", authUser.id).single();
-
-      if (!p && authUser.email) {
-        const { data: byEmail } = await supabase.from("cg_utenti")
-          .select("id, nome, email, ruolo, avatar_iniziali, avatar_bg, avatar_colore")
-          .eq("email", authUser.email).single();
-        if (byEmail) {
-          await supabase.from("cg_utenti").update({ auth_user_id: authUser.id }).eq("id", byEmail.id);
-          p = byEmail;
-        }
-      }
-
-      if (p) {
-        setProfile(p as typeof profile);
-        setForm({ nome: p.nome, avatar_iniziali: p.avatar_iniziali, avatar_bg: p.avatar_bg, avatar_colore: p.avatar_colore });
-      }
+  // Inizializza form dai dati utente al primo render
+  if (user && !form) {
+    setForm({
+      nome:            user.nome,
+      avatar_iniziali: user.avatar_iniziali,
+      avatar_bg:       user.avatar_bg,
+      avatar_colore:   user.avatar_colore,
     });
-  }, []);
+  }
+
+  const set = (k: string, v: string) => { setForm((f) => f ? { ...f, [k]: v } : f); setSaved(false); };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!user || !form) return;
     setSaving(true); setError(null);
     const { error: err } = await supabase.from("cg_utenti").update({
-      nome: form.nome.trim(),
+      nome:            form.nome.trim(),
       avatar_iniziali: form.avatar_iniziali.slice(0, 2).toUpperCase(),
-      avatar_bg: form.avatar_bg,
-      avatar_colore: form.avatar_colore,
-    }).eq("id", profile.id);
+      avatar_bg:       form.avatar_bg,
+      avatar_colore:   form.avatar_colore,
+    }).eq("id", user.id);
     setSaving(false);
     if (err) { setError(err.message); return; }
     setSaved(true);
-    setProfile((p) => p ? { ...p, ...form } : p);
   };
 
   const handleChangePassword = async () => {
@@ -97,16 +79,19 @@ export default function ProfilePage() {
     setSavingPw(false);
     if (err) { setPwError(err.message); return; }
     setPwSaved(true);
-    setPwForm({ current: "", newPw: "", confirm: "" });
+    setPwForm({ newPw: "", confirm: "" });
     setTimeout(() => setPwSaved(false), 3000);
   };
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13, color: "var(--text-primary)", fontFamily: "inherit", outline: "none", boxSizing: "border-box" };
   const labelStyle: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.04em" };
 
-  if (!profile) return <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)" }}>Caricamento...</div>;
+  if (loading || !user || !form) return null;
 
-  const ruoloLabel: Record<string, string> = { pm: "Project Manager", specialista: "Specialista", admin: "Admin" };
+  const ruoloLabel: Record<string, string> = {
+    admin: "Admin", pm_fornitore: "PM Fornitore", ps_fornitore: "PS Fornitore",
+    pm_cliente: "PM Cliente", ku_cliente: "KU Cliente",
+  };
 
   return (
     <div style={{ maxWidth: 720 }}>
@@ -115,18 +100,19 @@ export default function ProfilePage() {
         <p style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 4 }}>Gestisci i tuoi dati e la tua password</p>
       </div>
 
-      {/* Sezione profilo */}
+      {/* Dati personali */}
       <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "28px", marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>Dati personali</div>
 
-        {/* Avatar preview + info */}
         <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28, padding: "16px", backgroundColor: "#f8fafc", borderRadius: 10 }}>
           <Avatar iniziali={form.avatar_iniziali || "??"} bg={form.avatar_bg} colore={form.avatar_colore} size={64} />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{form.nome || profile.nome}</div>
-            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{profile.email}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{form.nome || user.nome}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{user.email}</div>
             <div style={{ marginTop: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 20, backgroundColor: "#eff6ff", color: "#2563eb" }}>{ruoloLabel[profile.ruolo] ?? profile.ruolo}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, padding: "2px 10px", borderRadius: 20, backgroundColor: "#eff6ff", color: "#2563eb" }}>
+                {ruoloLabel[user.ruolo] ?? user.ruolo}
+              </span>
             </div>
           </div>
         </div>
@@ -154,7 +140,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Sezione password */}
+      {/* Password */}
       <div style={{ backgroundColor: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "28px" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>Cambia password</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
