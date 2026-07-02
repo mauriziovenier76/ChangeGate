@@ -275,8 +275,8 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
 
   // Carica team esistente
   useEffect(() => {
-    supabase.from("cg_team").select("id, nome, email, ruolo").eq("fornitore_id", fornitore.id).order("nome")
-      .then(({ data }) => setTeamMembers((data ?? []).map((m) => ({ id: m.id, nome: m.nome, email: m.email ?? "", ruolo: m.ruolo as "pm" | "specialista" }))));
+    supabase.from("cg_team").select("id, nome, email, ruolo").eq("fornitore_id", fornitore.id).order("nome").limit(100)
+      .then(({ data, error }) => { console.log("cg_team data:", data, "error:", error); setTeamMembers((data ?? []).map((m) => ({ id: m.id, nome: m.nome, email: m.email ?? "", ruolo: m.ruolo as "pm" | "specialista" }))) });
   }, [fornitore.id]);
 
   const set = (k: string, v: string | boolean) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
@@ -693,7 +693,7 @@ export default function FornitoriPage() {
       )}
 
       {showNew  && <NewFornitoreModal onClose={() => setShowNew(false)} onCreated={loadData} />}
-      {editing  && <EditFornitoreDrawer fornitore={editing} onClose={() => setEditing(null)} onSaved={loadData} />}
+      {editing  && <EditFornitoreDrawer key={editing.id} fornitore={editing} onClose={() => setEditing(null)} onSaved={loadData} />}
     </div>
   );
 }
