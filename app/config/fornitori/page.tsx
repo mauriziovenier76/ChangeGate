@@ -276,7 +276,7 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
   // Carica team esistente
   useEffect(() => {
     supabase.from("cg_team").select("id, nome, email, ruolo").eq("fornitore_id", fornitore.id).order("nome").limit(100)
-      .then(({ data, error }) => { console.log("cg_team data:", data, "error:", error); setTeamMembers((data ?? []).map((m) => ({ id: m.id, nome: m.nome, email: m.email ?? "", ruolo: m.ruolo as "pm" | "specialista" }))) });
+      .then(({ data }) => setTeamMembers((data ?? []).map((m) => ({ id: m.id, nome: m.nome, email: m.email ?? "", ruolo: m.ruolo as "pm" | "specialista" }))));
   }, [fornitore.id]);
 
   const set = (k: string, v: string | boolean) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
@@ -422,13 +422,13 @@ function EditFornitoreDrawer({ fornitore, onClose, onSaved }: {
 
           {teamMembers.length > 0 && (
             <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto auto", backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 80px", backgroundColor: "#f8fafc", borderBottom: "1px solid var(--border-soft)" }}>
                 {["Nome", "Email", "Ruolo", ""].map((h) => (
                   <div key={h} style={{ padding: "7px 12px", fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" as const, letterSpacing: "0.06em" }}>{h}</div>
                 ))}
               </div>
               {teamMembers.map((m, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto auto", alignItems: "center", borderBottom: i < teamMembers.length - 1 ? "1px solid var(--border-soft)" : "none", backgroundColor: m.isNew ? "#f0fdf4" : "white" }}>
+                <div key={m.id ?? i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 80px", alignItems: "center", borderBottom: i < teamMembers.length - 1 ? "1px solid var(--border-soft)" : "none", backgroundColor: m.isNew ? "#f0fdf4" : "white" }}>
                   <div style={{ padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
                     {m.nome}
                     {m.isNew && <span style={{ marginLeft: 6, fontSize: 10, color: "#059669", fontWeight: 700 }}>NUOVO</span>}
